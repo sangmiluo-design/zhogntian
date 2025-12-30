@@ -1,0 +1,322 @@
+/* =========================================
+   边境契约 - 复古样式表
+   ========================================= */
+:root {
+    --bg-void: #0a0a0a;
+    --bg-paper: #f4f1ea;
+    --ink-primary: #1a1a1a;
+    --ink-secondary: #4a4a4a;
+    --wine-red: #722f37;
+    --accent-red: #8a1c1c;
+    --border-color: #1a1a1a;
+    --font-head: 'Cinzel', serif;
+    --font-body: 'Cormorant Garamond', serif;
+    --font-serif-cn: 'Noto Serif SC', 'Source Han Serif CN', serif;
+}
+
+* { box-sizing: border-box; outline: none; }
+
+body {
+    background-color: var(--bg-void);
+    color: var(--ink-primary);
+    font-family: var(--font-body);
+    font-size: 16px;
+    margin: 0;
+    padding: 20px;
+    background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url("https://www.transparenttextures.com/patterns/aged-paper.png");
+}
+
+.game-wrapper {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 300px 1fr 380px;
+    gap: 20px;
+    align-items: start;
+}
+
+/* 卡片基础 */
+.paper-card {
+    background-color: var(--bg-paper);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.4);
+}
+
+h2, h3, h4 {
+    font-family: var(--font-head);
+    text-transform: uppercase;
+    text-align: center;
+    margin: 0 0 15px 0;
+    border-bottom: 1px solid var(--ink-primary);
+    padding-bottom: 5px;
+    letter-spacing: 1px;
+    color: var(--ink-primary);
+}
+
+/* 顶栏 */
+.top-bar {
+    grid-column: 1 / -1;
+    background: var(--wine-red);
+    color: #f4f1ea;
+    border: 1px solid #000;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    margin-bottom: 20px;
+}
+.top-stats { 
+    font-family: var(--font-head); 
+    font-weight: bold; 
+    font-size: 1rem; 
+    display: flex; 
+    gap: 30px; 
+}
+.config-btn {
+    background: transparent; border: 1px solid #fff; color: #fff;
+    padding: 4px 12px; cursor: pointer; font-family: var(--font-head);
+    font-size: 0.9rem; transition: 0.3s;
+}
+.config-btn.small { color: var(--ink-primary); border-color: var(--ink-primary); font-size: 0.8rem; }
+.config-btn:hover { background: #fff; color: var(--wine-red); }
+
+/* 左侧角色栏 */
+.char-block { margin-bottom: 25px; border-bottom: 1px dashed var(--ink-secondary); padding-bottom: 15px; }
+.role-label { 
+    font-family: var(--font-head); font-size: 0.8rem; font-weight: bold;
+    color: var(--wine-red); display: block; margin-bottom: 5px; text-align: center;
+}
+.role-name { text-align: center; font-size: 1.4rem; font-weight: bold; margin-bottom: 10px; display: block; }
+
+/* 头像：高度 60px，左右留空 (98% width) */
+.avatar-box {
+    width: 98%; 
+    height: 60px; 
+    background: #ccc; 
+    border: 2px solid var(--ink-primary); 
+    margin: 0 auto 15px auto; 
+    overflow: hidden; 
+    position: relative;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+}
+.avatar-box img { width: 100%; height: 100%; object-fit: cover; filter: sepia(0.2); }
+
+.stat-row { 
+    display: flex; justify-content: space-between; 
+    font-size: 0.95rem; margin-bottom: 5px; 
+    border-bottom: 1px dotted #ccc; padding-bottom: 2px;
+}
+.mt-10 { margin-top: 10px; }
+.flavor-text { font-size: 0.85rem; color: #666; font-style: italic; margin-top: 8px; }
+
+/* 倒计时数字特殊字体 */
+.count-days {
+    font-family: var(--font-serif-cn);
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* 状态条 */
+.bar-label { font-size: 0.8rem; margin-top: 5px; display: flex; justify-content: space-between; }
+.bar-container { width: 100%; height: 6px; background: #ddd; border: 1px solid #666; margin-bottom: 2px; }
+.bar-fill { height: 100%; transition: width 0.3s; }
+.bar-fill.hp { background: var(--accent-red); }
+.bar-fill.xp { background: var(--wine-red); opacity: 0.8; }
+
+/* 折叠面板 */
+details {
+    margin-top: 10px;
+    border: 1px solid var(--ink-secondary);
+    background: rgba(255,255,255,0.3);
+}
+details summary {
+    padding: 4px 8px;
+    cursor: pointer;
+    font-family: var(--font-head);
+    font-size: 0.9rem;
+    list-style: none;
+    display: flex; justify-content: space-between;
+}
+details summary::after { content: "+"; font-weight: bold; }
+details[open] summary::after { content: "-"; }
+.details-content { padding: 8px; font-size: 0.9rem; }
+
+/* 房屋样式 */
+.house-container { border:1px solid #ddd; padding:10px; background:#fff; margin-bottom: 15px; }
+.house-title { font-weight:bold; margin-bottom:5px; font-size: 1.05rem; }
+.house-desc { font-size:0.9rem; color:#555; font-style:italic; margin-bottom: 10px; }
+.room-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.room-item { background: #f9f9f9; padding: 6px; border: 1px solid #eee; font-size: 0.9rem; }
+.room-item strong { display: block; margin-bottom: 2px; color: var(--ink-secondary); }
+.furniture { font-size: 0.8rem; color: #888; display: block; margin-top: 2px; }
+
+/* 农田 */
+.farm-container { border:1px solid #ddd; padding:10px; background:#fff; font-size:0.9rem; margin-bottom: 15px; }
+.section-header { font-weight:bold; border-bottom:1px solid #eee; margin-bottom:5px; }
+
+/* 任务板 */
+.quest-board { 
+    background: #ffffff; 
+    border: 1px solid var(--ink-primary); 
+    padding: 10px; 
+    margin-top: 15px; 
+    font-size: 0.9rem;
+}
+.quest-header-line {
+    font-weight: bold;
+    font-size: 1rem;
+    border-bottom: 2px solid var(--accent-red); 
+    width: 100%;
+    margin-bottom: 8px;
+    font-family: var(--font-head);
+    color: var(--accent-red);
+    padding-bottom: 2px;
+}
+.quest-btn { 
+    width: 100%; background: var(--bg-paper); color: var(--ink-primary); 
+    border: 1px solid var(--ink-primary); padding: 6px; cursor: pointer;
+    font-family: var(--font-head); margin-top: 8px; font-size: 0.9rem;
+    transition: 0.2s;
+}
+.quest-btn:hover:not(:disabled) { background: var(--ink-primary); color: #fff; }
+.quest-btn:disabled { color: #999; border-color: #999; cursor: not-allowed; }
+
+/* 行动区域 */
+.tab-nav { display: flex; margin: 15px 0 10px 0; border-bottom: 1px solid var(--ink-primary); }
+.tab-btn { 
+    flex: 1; padding: 8px; background: none; border: none; 
+    font-family: var(--font-head); cursor: pointer; 
+    font-weight: bold; color: var(--ink-secondary); 
+}
+.tab-btn.active { color: var(--ink-primary); border-bottom: 3px solid var(--wine-red); }
+
+.action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.act-btn {
+    background: #fff; border: 1px solid var(--ink-primary);
+    padding: 10px; font-family: var(--font-body); font-size: 0.95rem; cursor: pointer;
+    text-align: left; display: flex; justify-content: space-between; align-items: center;
+    transition: all 0.2s ease;
+}
+.act-btn:hover:not(:disabled) { 
+    background: var(--wine-red); 
+    color: #fff; 
+    border-color: var(--wine-red);
+}
+.act-btn:hover:not(:disabled) .cost-tag {
+    color: #fff;
+}
+.act-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #eee; }
+.cost-tag { font-size: 0.8em; font-weight: bold; color: var(--accent-red); }
+
+/* 商店 */
+.cart-area { margin-top: 15px; border-top: 1px solid #ccc; padding-top: 5px; font-size: 0.9rem; }
+.cart-item { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #ddd; }
+
+/* 聊天区域 */
+.chat-box { 
+    height: 400px; overflow-y: auto; background: #fff; 
+    border: 1px solid var(--ink-primary); padding: 15px;
+    margin-bottom: 10px; font-size: 0.95rem; line-height: 1.6;
+}
+.msg { margin-bottom: 12px; padding: 8px; border: 1px solid transparent; }
+.msg.knight { 
+    background: #f0f0f0; 
+    border-left: 3px solid var(--ink-primary); 
+}
+.msg.user { 
+    text-align: right; 
+    background: #fff0f0; 
+    border-right: 3px solid var(--wine-red); 
+}
+.msg.system { 
+    text-align: center; color: #666; 
+    font-style: italic; border-top: 1px solid #eee; border-bottom: 1px solid #eee; 
+    padding: 4px;
+}
+
+.input-group { display: flex; gap: 0; border: 1px solid var(--ink-primary); }
+#user-input { flex: 1; padding: 8px; border: none; font-family: var(--font-body); font-size: 1rem; background: transparent; }
+#send-btn { 
+    background: var(--ink-primary); color: #fff; border: none; 
+    padding: 0 20px; cursor: pointer; font-family: var(--font-head); 
+}
+
+/* 结算按钮 */
+.end-btn {
+    width: 100%; margin-top: 15px; padding: 12px;
+    background: var(--accent-red); 
+    color: #fff; 
+    border: 2px solid var(--ink-primary);
+    font-family: var(--font-head); font-size: 1rem; font-weight: bold;
+    cursor: pointer; transition: 0.2s;
+}
+.end-btn:hover { background: var(--wine-red); border-color: #000; }
+.end-btn.processing { cursor: wait; opacity: 0.7; }
+
+/* Modal */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 999; justify-content: center; align-items: center; }
+.modal.open { display: flex; }
+.modal-content { background: var(--bg-paper); padding: 25px; width: 600px; max-width: 95%; max-height: 90vh; overflow-y: auto; border: 1px solid var(--accent-red); }
+.form-row { margin-bottom: 15px; }
+.form-row label { display: block; font-weight: bold; font-family: var(--font-head); margin-bottom: 5px; color: var(--wine-red); }
+.form-row input, .form-row textarea { width: 100%; padding: 8px; font-family: monospace; border: 1px solid #999; background: #fff; }
+.form-row textarea { resize: vertical; }
+.btn-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;}
+
+/* 世界书列表样式 */
+.lore-controls { margin-bottom: 8px; text-align: right; }
+.lore-list { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; background: #fff; padding: 5px; }
+.lore-item { 
+    display: flex; flex-direction: column; gap: 5px; 
+    padding: 8px; border-bottom: 1px solid #eee; 
+    background: #fdfdfd;
+}
+.lore-item-header { display: flex; justify-content: space-between; align-items: center; }
+.lore-item textarea { 
+    width: 100%; font-size: 0.9rem; padding: 5px; min-height: 60px; 
+    border: 1px solid #ddd; resize: vertical; font-family: monospace;
+}
+.lore-item.disabled textarea { color: #aaa; text-decoration: line-through; background: #f0f0f0; }
+
+/* =========================================
+   移动端/小屏幕适配 (新增部分)
+   ========================================= */
+@media (max-width: 960px) {
+    /* 1. 全局布局改为单列垂直堆叠 */
+    .game-wrapper {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    body { padding: 10px; }
+
+    /* 2. 顶栏适配 */
+    .top-bar {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    .top-stats {
+        justify-content: space-between;
+        font-size: 0.9rem;
+    }
+
+    /* 3. 房屋结构在小屏幕改为单列，防止文字挤压 */
+    .room-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* 4. 调整聊天框高度，避免在手机上占满全屏 */
+    .chat-box {
+        height: 300px;
+    }
+
+    /* 5. 模态框全宽 */
+    .modal-content {
+        width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+    }
+}

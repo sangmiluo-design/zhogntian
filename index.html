@@ -1,0 +1,259 @@
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>边境契约：无尽债务</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div class="top-bar">
+    <div class="top-stats">
+        <span>日期: <span id="date-display">新绿季 第10日</span></span>
+        <span>资金: <span id="money-display">200铜</span></span>
+        <span>行动力: <span id="ap">5</span>/5</span>
+    </div>
+    <button class="config-btn" onclick="openConfig()">系统与人设设置</button>
+</div>
+
+<div class="game-wrapper">
+
+    <!-- 左栏：角色信息 -->
+    <aside class="paper-card">
+        <!-- 债主 -->
+        <div class="char-block">
+            <span class="role-label">债主 / 银月骑士团长</span>
+            <span class="role-name">维克多·银刃</span>
+            
+            <!-- 头像 -->
+            <div class="avatar-box">
+                <img src="https://cdn.discordapp.com/attachments/1455559611875856386/1455559737935659110/5c47a1231d755a2c.png?ex=69552b24&is=6953d9a4&hm=d9117375a09f4273eeef1639c527653adceac71d4cb9e39537d1502edf55e8c1" alt="维克多">
+            </div>
+
+            <div class="stat-row"><span>好感度</span> <span id="k-love">50 (冷淡)</span></div>
+            <div class="stat-row"><span>位置</span> <span id="k-loc">村庄巡逻</span></div>
+            
+            <details>
+                <summary>详细状态</summary>
+                <div class="details-content">
+                    <div class="stat-row"><span>等级</span> <span>80 (黄金阶)</span></div>
+                    <div class="stat-row"><span>心情</span> <span id="k-mood">普通</span></div>
+                    <div class="stat-row"><span>性欲</span> <span id="k-lust">中</span></div>
+                    <div class="stat-row"><span>性器</span> <span id="k-genital">微微勃起</span></div>
+                    <div class="stat-row"><span>衣着</span> <span id="k-cloth">轻便胸甲/黑色亚麻内搭/深棕皮裤/长筒皮靴</span></div>
+                    <div class="stat-row"><span>当前行为</span> <span id="k-act">站在田边平复情绪</span></div>
+                    <p class="flavor-text">* 评价: "这笔债务不仅是金钱，更是你父亲留下的烂摊子。"</p>
+                </div>
+            </details>
+        </div>
+
+        <!-- 欠债者 -->
+        <div class="char-block" style="border-bottom:none;">
+            <span class="role-label">欠债者 / 孤女</span>
+            <span class="role-name">洛落</span>
+            
+            <!-- 头像 -->
+            <div class="avatar-box">
+                <img src="https://cdn.discordapp.com/attachments/1455559611875856386/1455589997980680375/luoluo.png?ex=69554753&is=6953f5d3&hm=f3db118e4c16d2d37754c6bbddfd7f8caf2034f6747d8f8c3c0d9d3626957301" alt="洛落">
+            </div>
+
+            <div class="stat-row" style="color:var(--accent-red); font-weight:bold;">
+                <span>总负债</span> <span id="u-debt">3000金</span>
+            </div>
+            <div class="stat-row">
+                <span>下期还款</span> <span>余 <span id="days-left" class="count-days">7</span> 天</span>
+            </div>
+
+            <details>
+                <summary>详细状态</summary>
+                <div class="details-content">
+                    <!-- HP 条 -->
+                    <div class="bar-label">HP <span id="u-hp-text">100/100</span></div>
+                    <div class="bar-container"><div class="bar-fill hp" id="hp-bar" style="width:100%"></div></div>
+
+                    <!-- XP 条 -->
+                    <div class="bar-label">经验 <span id="u-xp-text">0/100</span></div>
+                    <div class="bar-container"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
+
+                    <div class="stat-row mt-10"><span>等级</span> <span id="u-lv">1</span></div>
+                    <div class="stat-row"><span>状态</span> <span id="u-state">营养不良/羞耻/困惑</span></div>
+                    <div class="stat-row"><span>性欲</span> <span id="u-lust">微弱</span></div>
+                    <div class="stat-row"><span>性器</span> <span id="u-genital">处女/干燥</span></div>
+                    <div class="stat-row"><span>衣着</span> <span id="u-cloth">旧亚麻裙</span></div>
+                </div>
+            </details>
+        </div>
+    </aside>
+
+    <!-- 中栏：领地与行动 -->
+    <main class="paper-card">
+        <h2>猎人小屋与领地</h2>
+        
+        <!-- 房屋详细描述 -->
+        <div class="house-container">
+            <div class="house-title">【刚维修完的】猎人小屋</div>
+            <div class="house-desc">养父留下的唯一遗产，虽然破旧，但勉强能遮风挡雨。</div>
+            <div class="room-grid">
+                <div class="room-item">
+                    <strong>卧室 LV1</strong>重新布置的睡眠区<br>
+                    <span class="furniture">家具 单人床1，床头柜1，新衣柜1</span>
+                </div>
+                <div class="room-item">
+                    <strong>厨房 LV1</strong>功能完善的烹饪区<br>
+                    <span class="furniture">家具: 新灶台1，烤炉1，橱柜1</span>
+                </div>
+                <div class="room-item">
+                    <strong>客厅 LV1</strong>重新铺设地板的起居区<br>
+                    <span class="furniture">家具: 方木桌1，摇椅1，铜灯1</span>
+                </div>
+                <div class="room-item">
+                    <strong>平台阳台 LV1</strong>新建的户外空间<br>
+                    <span class="furniture">家具: 无</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 农田列表 -->
+        <div class="farm-container">
+            <div class="section-header">农田状况</div>
+            <div id="farm-list">
+                <!-- JS生成 -->
+            </div>
+        </div>
+
+        <!-- 随机任务 -->
+        <div class="quest-board" id="daily-quest-area">
+            <div class="quest-header-line">今日委托</div>
+            <div id="quest-content">
+                <!-- JS生成 -->
+            </div>
+            <button class="quest-btn" id="quest-btn" onclick="acceptQuest()">接受委托</button>
+            <div id="quest-status" style="display:none; text-align:center; color:green; margin-top:5px; font-weight:bold;">[ 已接取 ]</div>
+        </div>
+
+        <!-- 标签页 -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('act')">每日行动</button>
+            <button class="tab-btn" onclick="switchTab('shop')">集市购物</button>
+        </div>
+
+        <!-- 行动面板 -->
+        <div id="tab-act">
+            <div class="action-grid">
+                <button class="act-btn" onclick="doAction('农田浇水', 1)">
+                    <span>农田浇水</span> <span class="cost-tag">1 AP</span>
+                </button>
+                <button class="act-btn" onclick="doAction('农田除草', 1)">
+                    <span>农田除草</span> <span class="cost-tag">1 AP</span>
+                </button>
+                <button class="act-btn" onclick="doAction('农田施肥', 1)">
+                    <span>农田施肥</span> <span class="cost-tag">1 AP</span>
+                </button>
+                <button class="act-btn" onclick="doAction('在家烹饪', 1)">
+                    <span>在家烹饪</span> <span class="cost-tag">1 AP</span>
+                </button>
+                <button class="act-btn" onclick="doAction('在家打扫', 1)">
+                    <span>在家打扫</span> <span class="cost-tag">1 AP</span>
+                </button>
+                <button class="act-btn" onclick="doAction('酒馆兼职', 2)">
+                    <span>酒馆兼职 (赚币)</span> <span class="cost-tag">2 AP</span>
+                </button>
+                <button class="act-btn" onclick="doAction('裁缝店帮工', 2)">
+                    <span>裁缝店帮工 (赚币)</span> <span class="cost-tag">2 AP</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 商店面板 -->
+        <div id="tab-shop" style="display:none;">
+            <div class="action-grid">
+                <button class="act-btn" onclick="addToCart('番茄种子', 10)">
+                    <span>番茄种子</span> <span class="cost-tag">10铜</span>
+                </button>
+                <button class="act-btn" onclick="addToCart('黑麦面包', 5)">
+                    <span>黑麦面包</span> <span class="cost-tag">5铜</span>
+                </button>
+                <button class="act-btn" onclick="addToCart('新棉布裙', 150)">
+                    <span>新棉布裙</span> <span class="cost-tag">150铜</span>
+                </button>
+                <button class="act-btn" onclick="addToCart('强效除草剂', 20)">
+                    <span>强效除草剂</span> <span class="cost-tag">20铜</span>
+                </button>
+            </div>
+            <div class="cart-area">
+                <div style="font-weight:bold; margin-bottom:5px;">预购清单</div>
+                <div id="cart-list" style="color:#666; font-style:italic;">(空)</div>
+                <div style="text-align:right; margin-top:5px; font-weight:bold;">
+                    总计: <span id="cart-total">0</span> 铜
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 右栏：交互 -->
+    <aside class="paper-card">
+        <h3>通讯水晶</h3>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="input-group">
+            <input type="text" id="user-input" placeholder="输入对话..." onkeypress="if(event.key==='Enter') sendChat()">
+            <button id="send-btn" onclick="sendChat()">发送</button>
+        </div>
+
+        <button id="end-day-btn" class="end-btn" onclick="endDay()">
+            结束今日 / 结算数据
+        </button>
+    </aside>
+
+</div>
+
+<!-- 设置与存档 Modal -->
+<div id="config-modal" class="modal">
+    <div class="modal-content">
+        <h3>系统与人设设置</h3>
+        
+        <div style="display:flex; gap:10px; margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid #ccc;">
+             <button class="config-btn" style="border:1px solid var(--ink-primary); color:var(--ink-primary);" onclick="exportData()">📤 导出存档</button>
+             <label class="config-btn" style="border:1px solid var(--ink-primary); color:var(--ink-primary); cursor:pointer;">
+                📥 导入存档
+                <input type="file" id="import-file" style="display:none" onchange="importData(this)">
+             </label>
+        </div>
+
+        <div class="form-row">
+            <label>API Key (DeepSeek/OpenAI 格式):</label>
+            <input type="password" id="api-key" placeholder="sk-...">
+        </div>
+        <div class="form-row">
+            <label>Base URL:</label>
+            <input type="text" id="api-url" value="https://api.deepseek.com">
+        </div>
+
+        <div class="form-row">
+            <label>骑士人设 (AI扮演准则):</label>
+            <textarea id="knight-prompt" style="height:100px;"></textarea>
+        </div>
+
+        <!-- 世界书管理区域 -->
+        <div class="form-row">
+            <label>世界书 / 背景提示词库 (World Lore):</label>
+            <div style="margin-bottom:5px; font-size:0.85rem; color:#555;">勾选以启用条目。点击 + 新增自定义世界观。</div>
+            <div class="lore-controls">
+                <button class="config-btn small" onclick="addLoreEntry()">+ 新增条目</button>
+            </div>
+            <div id="lore-list" class="lore-list">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        
+        <div class="btn-row">
+            <button class="config-btn" style="border:1px solid var(--ink-primary); color:var(--ink-primary);" onclick="saveConfigAndClose()">保存并关闭</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>

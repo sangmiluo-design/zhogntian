@@ -1,5 +1,5 @@
 /* =========================================
-   边境契约 - 复古样式表
+   边境契约 - 复古样式表 (AI增强版)
    ========================================= */
 :root {
     --bg-void: #0a0a0a;
@@ -90,9 +90,8 @@ h2, h3, h4 {
 }
 .role-name { text-align: center; font-size: 1.4rem; font-weight: bold; margin-bottom: 10px; display: block; }
 
-/* 头像：高度 60px，左右留空 (98% width) */
 .avatar-box {
-    width: 98%; 
+    width: 92%; 
     height: 60px; 
     background: #ccc; 
     border: 2px solid var(--ink-primary); 
@@ -111,7 +110,6 @@ h2, h3, h4 {
 .mt-10 { margin-top: 10px; }
 .flavor-text { font-size: 0.85rem; color: #666; font-style: italic; margin-top: 8px; }
 
-/* 倒计时数字特殊字体 */
 .count-days {
     font-family: var(--font-serif-cn);
     font-size: 1.2rem;
@@ -143,18 +141,25 @@ details summary::after { content: "+"; font-weight: bold; }
 details[open] summary::after { content: "-"; }
 .details-content { padding: 8px; font-size: 0.9rem; }
 
-/* 房屋样式 */
-.house-container { border:1px solid #ddd; padding:10px; background:#fff; margin-bottom: 15px; }
+/* 房屋与物品 */
+.house-container, .farm-container, .inventory-container { 
+    border:1px solid #ddd; padding:10px; background:#fff; margin-bottom: 15px; font-size: 0.9rem;
+}
 .house-title { font-weight:bold; margin-bottom:5px; font-size: 1.05rem; }
 .house-desc { font-size:0.9rem; color:#555; font-style:italic; margin-bottom: 10px; }
 .room-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .room-item { background: #f9f9f9; padding: 6px; border: 1px solid #eee; font-size: 0.9rem; }
 .room-item strong { display: block; margin-bottom: 2px; color: var(--ink-secondary); }
 .furniture { font-size: 0.8rem; color: #888; display: block; margin-top: 2px; }
-
-/* 农田 */
-.farm-container { border:1px solid #ddd; padding:10px; background:#fff; font-size:0.9rem; margin-bottom: 15px; }
 .section-header { font-weight:bold; border-bottom:1px solid #eee; margin-bottom:5px; }
+
+/* 随身物品样式 */
+.inventory-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.inv-item { 
+    background: #f0f0f0; border: 1px solid #ccc; padding: 2px 6px; 
+    font-size: 0.85rem; cursor: help; 
+}
+.inv-item:hover { background: #e0e0e0; }
 
 /* 任务板 */
 .quest-board { 
@@ -204,15 +209,9 @@ details[open] summary::after { content: "-"; }
     color: #fff; 
     border-color: var(--wine-red);
 }
-.act-btn:hover:not(:disabled) .cost-tag {
-    color: #fff;
-}
+.act-btn:hover:not(:disabled) .cost-tag { color: #fff; }
 .act-btn:disabled { opacity: 0.5; cursor: not-allowed; background: #eee; }
 .cost-tag { font-size: 0.8em; font-weight: bold; color: var(--accent-red); }
-
-/* 商店 */
-.cart-area { margin-top: 15px; border-top: 1px solid #ccc; padding-top: 5px; font-size: 0.9rem; }
-.cart-item { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #ddd; }
 
 /* 聊天区域 */
 .chat-box { 
@@ -221,15 +220,8 @@ details[open] summary::after { content: "-"; }
     margin-bottom: 10px; font-size: 0.95rem; line-height: 1.6;
 }
 .msg { margin-bottom: 12px; padding: 8px; border: 1px solid transparent; }
-.msg.knight { 
-    background: #f0f0f0; 
-    border-left: 3px solid var(--ink-primary); 
-}
-.msg.user { 
-    text-align: right; 
-    background: #fff0f0; 
-    border-right: 3px solid var(--wine-red); 
-}
+.msg.knight { background: #f0f0f0; border-left: 3px solid var(--ink-primary); }
+.msg.user { text-align: right; background: #fff0f0; border-right: 3px solid var(--wine-red); }
 .msg.system { 
     text-align: center; color: #666; 
     font-style: italic; border-top: 1px solid #eee; border-bottom: 1px solid #eee; 
@@ -240,15 +232,20 @@ details[open] summary::after { content: "-"; }
 #user-input { flex: 1; padding: 8px; border: none; font-family: var(--font-body); font-size: 1rem; background: transparent; }
 #send-btn { 
     background: var(--ink-primary); color: #fff; border: none; 
-    padding: 0 20px; cursor: pointer; font-family: var(--font-head); 
+    padding: 0 15px; cursor: pointer; font-family: var(--font-head); 
 }
+/* 重试按钮样式 */
+.reroll-btn {
+    background: #ccc; color: #333; border: none; border-left: 1px solid var(--ink-primary);
+    padding: 0 10px; cursor: pointer; font-size: 1.2rem; transition: 0.2s;
+}
+.reroll-btn:hover { background: #bbb; color: var(--wine-red); }
+.reroll-large { font-size: 1.2rem; padding: 0 !important; text-align: center; }
 
 /* 结算按钮 */
 .end-btn {
-    width: 100%; margin-top: 15px; padding: 12px;
-    background: var(--accent-red); 
-    color: #fff; 
-    border: 2px solid var(--ink-primary);
+    flex: 1; margin-top: 15px; padding: 12px;
+    background: var(--accent-red); color: #fff; border: 2px solid var(--ink-primary);
     font-family: var(--font-head); font-size: 1rem; font-weight: bold;
     cursor: pointer; transition: 0.2s;
 }
@@ -265,58 +262,21 @@ details[open] summary::after { content: "-"; }
 .form-row textarea { resize: vertical; }
 .btn-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px;}
 
-/* 世界书列表样式 */
+/* 世界书列表 */
 .lore-controls { margin-bottom: 8px; text-align: right; }
 .lore-list { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; background: #fff; padding: 5px; }
-.lore-item { 
-    display: flex; flex-direction: column; gap: 5px; 
-    padding: 8px; border-bottom: 1px solid #eee; 
-    background: #fdfdfd;
-}
+.lore-item { display: flex; flex-direction: column; gap: 5px; padding: 8px; border-bottom: 1px solid #eee; background: #fdfdfd; }
 .lore-item-header { display: flex; justify-content: space-between; align-items: center; }
-.lore-item textarea { 
-    width: 100%; font-size: 0.9rem; padding: 5px; min-height: 60px; 
-    border: 1px solid #ddd; resize: vertical; font-family: monospace;
-}
+.lore-item textarea { width: 100%; font-size: 0.9rem; padding: 5px; min-height: 60px; border: 1px solid #ddd; resize: vertical; font-family: monospace; }
 .lore-item.disabled textarea { color: #aaa; text-decoration: line-through; background: #f0f0f0; }
 
-/* =========================================
-   移动端/小屏幕适配 (新增部分)
-   ========================================= */
+/* 移动端适配 */
 @media (max-width: 960px) {
-    /* 1. 全局布局改为单列垂直堆叠 */
-    .game-wrapper {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-    
+    .game-wrapper { grid-template-columns: 1fr; gap: 15px; }
     body { padding: 10px; }
-
-    /* 2. 顶栏适配 */
-    .top-bar {
-        flex-direction: column;
-        gap: 10px;
-        align-items: stretch;
-    }
-    .top-stats {
-        justify-content: space-between;
-        font-size: 0.9rem;
-    }
-
-    /* 3. 房屋结构在小屏幕改为单列，防止文字挤压 */
-    .room-grid {
-        grid-template-columns: 1fr;
-    }
-
-    /* 4. 调整聊天框高度，避免在手机上占满全屏 */
-    .chat-box {
-        height: 300px;
-    }
-
-    /* 5. 模态框全宽 */
-    .modal-content {
-        width: 100%;
-        max-height: 100%;
-        border-radius: 0;
-    }
+    .top-bar { flex-direction: column; gap: 10px; align-items: stretch; }
+    .top-stats { justify-content: space-between; font-size: 0.9rem; }
+    .room-grid { grid-template-columns: 1fr; }
+    .chat-box { height: 300px; }
+    .modal-content { width: 100%; max-height: 100%; border-radius: 0; }
 }

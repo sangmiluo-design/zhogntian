@@ -1,4 +1,4 @@
-
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -105,9 +105,9 @@
             </div>
         </div>
 
-        <!-- [新增] 随身物品 -->
+        <!-- 随身物品 -->
         <div class="inventory-container">
-            <div class="section-header">随身物品</div>
+            <div class="section-header">随身物品 (在对话中描述使用)</div>
             <div id="inventory-list" class="inventory-grid">
                 <!-- JS生成 -->
                 <span style="color:#999; font-style:italic;">暂无物品</span>
@@ -158,18 +158,18 @@
         <h3>通讯水晶</h3>
         <div class="chat-box" id="chat-box"></div>
         <div class="input-group">
-            <input type="text" id="user-input" placeholder="输入对话..." onkeypress="if(event.key==='Enter') sendChat()">
+            <input type="text" id="user-input" placeholder="输入对话... (如: 把种子种在1号田)" onkeypress="if(event.key==='Enter') sendChat()">
             <button id="send-btn" onclick="sendChat()">发送</button>
-            <!-- [新增] 重试对话按钮 -->
             <button id="chat-reroll-btn" class="reroll-btn" onclick="rerollChat()" title="撤回并重试上一条回复">↺</button>
         </div>
 
-        <div style="display:flex; gap:5px; align-items:flex-start;">
+        <!-- 结算区域优化 -->
+        <div style="display:flex; align-items:center; gap:8px; margin-top:15px;">
             <button id="end-day-btn" class="end-btn" onclick="endDay()">
                 结束今日 / 结算数据
             </button>
-            <!-- [新增] 重试结算按钮 -->
-            <button id="settle-reroll-btn" class="end-btn reroll-large" onclick="rerollSettlement()" style="width:50px; display:none;" title="不满意结算结果？重来">↺</button>
+            <!-- 小巧的重试结算按钮 -->
+            <button id="settle-reroll-btn" class="reroll-btn reroll-large" onclick="rerollSettlement()" style="display:none;" title="不满意? 恢复并重来">↺</button>
         </div>
     </aside>
 
@@ -219,3 +219,4 @@
 
 <script src="script.js"></script>
 </body>
+</html>

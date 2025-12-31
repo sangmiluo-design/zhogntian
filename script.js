@@ -1,5 +1,5 @@
 /* =========================================
-   边境契约 - 核心逻辑 (AI 全量驱动版)
+   边境契约 - 核心逻辑 (AI 全量驱动版 - 修正增强)
    ========================================= */
 
 const initialKnightPersona = `你扮演维克多·银刃，银月骑士团团长。
@@ -43,15 +43,15 @@ const defaultState = {
         { id: 1, type: "旱田", crop: "无", status: "空闲" },
         { id: 2, type: "旱田", crop: "无", status: "空闲" }
     ],
-    inventory: ["破损的水壶"], // [新增] 随身物品
-    quest: { name: "暂无", desc: "暂无委托", reward: 0, cost: 0 }, // 动态
-    dailyActions: [], // [新增] 动态行动列表
-    shopItems: []     // [新增] 动态商店列表
+    inventory: ["破损的水壶"], 
+    quest: { name: "暂无", desc: "暂无委托", reward: 0, cost: 0 }, 
+    dailyActions: [], 
+    shopItems: []     
 };
 
 // 全局变量
 let gameState = JSON.parse(JSON.stringify(defaultState));
-let backupState = null; // 用于重Roll结算
+let daySnapshot = null; // 用于完美回滚：存储结算前一刻的所有状态和日志
 let config = {
     apiKey: "",
     baseUrl: "https://api.deepseek.com",
@@ -62,11 +62,9 @@ let chatHistory = [];
 let dailyLogs = [];
 let cart = [];
 let pendingQuestReward = 0;
-let lastActionResult = ""; // 记录上一次行动的AI反馈
 
 window.onload = function() {
     loadData();
-    // 初始化动态数据
     if(gameState.dailyActions.length === 0) generateDefaultActions();
     if(gameState.shopItems.length === 0) generateDefaultShop();
     if(!gameState.quest || gameState.quest.name === "暂无") generateDefaultQuest();
@@ -80,7 +78,6 @@ window.onload = function() {
         const box = document.getElementById('chat-box');
         box.innerHTML = '';
         chatHistory.forEach(c => {
-            // 只显示最近的消息，防止刷屏，但数据保留
             if(c.role !== 'system') addMsg(c.content, c.role === 'user' ? 'user' : 'knight');
         });
     }
@@ -89,15 +86,15 @@ window.onload = function() {
 // --- 数据管理 ---
 function saveData() {
     const data = { gameState, config, chatHistory };
-    localStorage.setItem('rpg_save_data_enhanced', JSON.stringify(data));
+    localStorage.setItem('rpg_save_data_enhanced_v2', JSON.stringify(data));
 }
 
 function loadData() {
-    const raw = localStorage.getItem('rpg_save_data_enhanced');
+    const raw = localStorage.getItem('rpg_save_data_enhanced_v2');
     if(raw) {
         try {
             const data = JSON.parse(raw);
-            gameState = { ...defaultState, ...data.gameState }; // 合并防止新字段缺失
+            gameState = { ...defaultState, ...data.gameState };
             config = data.config || config;
             if (typeof config.worldLore === 'string') config.worldLore = [];
             chatHistory = data.chatHistory || [];
@@ -107,7 +104,7 @@ function loadData() {
 
 function exportData() {
     saveData();
-    const raw = localStorage.getItem('rpg_save_data_enhanced');
+    const raw = localStorage.getItem('rpg_save_data_enhanced_v2');
     const blob = new Blob([raw], {type: "application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -133,7 +130,7 @@ function importData(input) {
     reader.readAsText(file);
 }
 
-// --- 默认生成器 (当AI未介入时) ---
+// --- 默认生成器 ---
 function generateDefaultActions() {
     gameState.dailyActions = [
         { name: "农田浇水", cost: 1, desc: "照顾作物" },
@@ -201,12 +198,8 @@ function getActiveLoreText() {
     return config.worldLore.filter(i => i.active).map(i => i.text).join('\n\n');
 }
 
-// 辅助：获取最近3天的消息，减少Token
 function getRecentContext() {
-    const currentDay = gameState.day;
-    // 假设每天平均10条消息，这里取最后30条作为近似“最近三天”
-    // 为了更精准，我们在存消息时可以加时间戳，这里简化处理
-    return chatHistory.slice(-30);
+    return chatHistory.slice(-30); // 取最近30条作为上下文
 }
 
 // 1. 聊天
@@ -217,7 +210,7 @@ async function sendChat() {
 
     addMsg(text, "user");
     input.value = "";
-    chatHistory.push({role: "user", content: text, day: gameState.day}); // 记录天数
+    chatHistory.push({role: "user", content: text, day: gameState.day});
     saveData();
 
     const btn = document.getElementById('send-btn');
@@ -231,10 +224,9 @@ async function sendChat() {
     【当前状态】
     日期: ${gameState.season} 第${gameState.day}日
     好感: ${gameState.knight.love} | 心情: ${gameState.knight.mood}
-    当前行为: ${gameState.knight.action}
-    洛落位置: ${gameState.knight.location}附近
+    随身物品: ${JSON.stringify(gameState.inventory)}
     
-    请以维克多身份回复。回复需简短有力。
+    请以维克多身份回复。如果玩家提到使用了物品（如"把种子种下"），请在回复中自然地描述结果，但实际数值变化将在日结时处理。
     `;
 
     try {
@@ -258,13 +250,10 @@ async function rerollChat() {
     const lastMsg = chatHistory[chatHistory.length - 1];
     
     if(lastMsg.role === 'assistant') {
-        // 移除最后一条AI回复
         chatHistory.pop();
-        // 移除界面上的最后一条
         const box = document.getElementById('chat-box');
         if(box.lastChild) box.removeChild(box.lastChild);
         
-        // 如果再上一条是用户的，则重新触发发送逻辑（但不重复添加用户消息）
         const userMsg = chatHistory[chatHistory.length - 1];
         if(userMsg && userMsg.role === 'user') {
             const btn = document.getElementById('send-btn');
@@ -294,16 +283,21 @@ async function endDay() {
     const rerollBtn = document.getElementById('settle-reroll-btn');
     if(btn.classList.contains('processing')) return;
     
-    // 备份状态用于重Roll
-    backupState = JSON.parse(JSON.stringify(gameState));
+    // 【关键】创建当日快照：保存状态、日志、购物车、奖励。这样回退时AI能看到当时的完整情况
+    daySnapshot = {
+        gameState: JSON.parse(JSON.stringify(gameState)),
+        dailyLogs: JSON.parse(JSON.stringify(dailyLogs)),
+        cart: JSON.parse(JSON.stringify(cart)),
+        pendingQuestReward: pendingQuestReward
+    };
     
     btn.classList.add('processing'); btn.innerText = "结算中...";
-    rerollBtn.style.display = 'none'; // 结算中隐藏重试
+    rerollBtn.style.display = 'none';
 
-    // 预计算金钱，防止AI算错
+    // 预计算金钱
     let cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
     let estimatedMoney = gameState.money + pendingQuestReward - cartTotal;
-    if(estimatedMoney < 0) estimatedMoney = 0; // 防止负债
+    if(estimatedMoney < 0) estimatedMoney = 0;
 
     const sysPrompt = `
     你是一个硬核RPG游戏主脑。请根据今日数据进行结算，并以 **纯JSON格式** 返回结果。
@@ -318,27 +312,25 @@ async function endDay() {
     日志: ${JSON.stringify(dailyLogs)}
     购买: ${JSON.stringify(cart)} (总价: ${cartTotal})
     委托奖励: ${pendingQuestReward}
-    对话摘要: ${JSON.stringify(getRecentContext().slice(-5))}
+    对话摘要: ${JSON.stringify(getRecentContext().slice(-10))}
     
-    【计算约束】
-    理论剩余金钱 = ${gameState.money} + ${pendingQuestReward} - ${cartTotal} = ${estimatedMoney}。
-    请以此数值为基础，若有额外剧情收入/支出可微调。
-    
-    【任务要求】
-    1. **全量更新状态**: 根据剧情推导所有角色的所有字段（含性欲、好感、位置、评价）。
-    2. **剧情推进**:
-       - 如果购买了种子且有浇水，农田作物应生长或成熟。
-       - 如果购买了物品，必须加入 inventory。
-       - 必须生成 3 个符合明日剧情的新行动 (newActions)。
-       - 必须生成 4 个商店新货 (newShop)。
-       - 必须生成 1 个新委托 (newQuest)。
-       - 更新房屋描述 (house) 如果有变化。
-    3. **反馈集成**: 在 narrative 中简要描述每个行动的结果。
+    【必须执行的逻辑】
+    1. **物品交互检测 (重要)**: 
+       - 仔细阅读“对话摘要”和“日志”。
+       - 如果玩家描述了**使用物品**（如"种下番茄种子"、"喝药水"），必须从 inventory 中**移除**该物品，并更新对应状态（如将某块田的status改为"种植中"、增加HP）。
+       - 如果购买了新物品，确保加入 inventory。
+    2. **全量更新状态**: 
+       - 推导所有角色字段。
+       - 农田逻辑：有浇水则生长，无浇水则干涸。
+    3. **动态内容生成 (重要)**:
+       - **dailyActions**: 不要照抄旧的！根据今日剧情生成 3-4 个明天的行动。例如：如果今日帮了裁缝，明日可加入"裁缝店继续帮忙"。
+       - **shopItems**: 不要照抄旧的！根据季节和需求生成 4 个商品。
+       - **quest**: 生成 1 个新委托。
     
     【JSON 输出格式】
     {
-        "newState": { ...完整的gameState对象... },
-        "narrative": "剧情总结，包含对购物、行动的反馈",
+        "newState": { ...更新后的完整gameState... },
+        "narrative": "剧情总结，请明确描述物品使用结果（如：你种下了种子...）、购物结果及身体反应",
         "knightComment": "维克多的一句评价"
     }
     `;
@@ -351,12 +343,12 @@ async function endDay() {
         // 应用更新
         gameState = result.newState;
         
-        // 强制重置部分循环逻辑
+        // 强制重置循环逻辑
         gameState.ap = 5; 
         dailyLogs = [];
         cart = [];
         pendingQuestReward = 0;
-        gameState.day += 1; // 确保天数增加
+        gameState.day += 1;
         gameState.daysUntilPay = Math.max(0, gameState.daysUntilPay - 1);
 
         updateCartDisplay();
@@ -373,22 +365,36 @@ async function endDay() {
 
     } catch(e) {
         console.error(e);
-        addMsg("系统: 结算数据解析失败，请检查设置。", "system");
-        // 恢复备份
-        gameState = JSON.parse(JSON.stringify(backupState));
+        addMsg("系统: 结算异常 (请检查网络或API)。", "system");
+        // 如果失败，恢复快照以免数据损坏
+        if(daySnapshot) {
+            gameState = daySnapshot.gameState;
+            dailyLogs = daySnapshot.dailyLogs;
+            cart = daySnapshot.cart;
+            pendingQuestReward = daySnapshot.pendingQuestReward;
+        }
     } finally {
         btn.classList.remove('processing'); btn.innerText = "结束今日 / 结算数据";
     }
 }
 
-// 重Roll结算
+// 完美重Roll结算
 function rerollSettlement() {
-    if(!backupState) return;
-    if(confirm("确定要回滚到结算前并重新计算吗？")) {
-        gameState = JSON.parse(JSON.stringify(backupState));
-        // 清除界面上的日结消息（可选，这里简单处理直接刷新或再次调用endDay）
+    if(!daySnapshot) return;
+    if(confirm("确定要回滚到结算前并重新计算吗？(AI将重新评估你的所有行为)")) {
+        // 恢复快照：就像时间倒流到点击结算按钮的那一刻
+        gameState = JSON.parse(JSON.stringify(daySnapshot.gameState));
+        dailyLogs = JSON.parse(JSON.stringify(daySnapshot.dailyLogs));
+        cart = JSON.parse(JSON.stringify(daySnapshot.cart));
+        pendingQuestReward = daySnapshot.pendingQuestReward;
+        
+        // 刷新界面
         renderUI();
-        addMsg("系统: 已回滚状态，正在重试结算...", "system");
+        updateCartDisplay();
+        
+        addMsg("系统: 时间回溯成功，正在根据旧日志重新结算...", "system");
+        
+        // 立即重新触发结算
         endDay();
     }
 }
@@ -398,9 +404,9 @@ async function callAPI(messages, jsonMode) {
     if(!config.apiKey) { alert("请配置 API Key"); return null; }
     
     const payload = {
-        model: "deepseek-chat", // 可在设置里改
+        model: "deepseek-chat",
         messages: messages,
-        temperature: 0.8, // 稍微提高创造性
+        temperature: 0.85, // 提高温度以增加动态内容的随机性
         stream: false
     };
     if(jsonMode) payload.response_format = { type: "json_object" };
@@ -478,11 +484,11 @@ function renderUI() {
         </div>`
     ).join('');
 
-    // [新增] 随身物品
+    // 随身物品
     const invDiv = document.getElementById('inventory-list');
     if(gameState.inventory && gameState.inventory.length > 0) {
         invDiv.innerHTML = gameState.inventory.map(item => 
-            `<div class="inv-item" title="持有物品">${item}</div>`
+            `<div class="inv-item" title="在聊天中描述使用该物品">${item}</div>`
         ).join('');
     } else {
         invDiv.innerHTML = '<span style="color:#999; font-style:italic;">暂无物品</span>';

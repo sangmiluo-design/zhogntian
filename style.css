@@ -234,23 +234,39 @@ details[open] summary::after { content: "-"; }
     background: var(--ink-primary); color: #fff; border: none; 
     padding: 0 15px; cursor: pointer; font-family: var(--font-head); 
 }
-/* 重试按钮样式 */
+
+/* 重试按钮通用样式 */
 .reroll-btn {
     background: #ccc; color: #333; border: none; border-left: 1px solid var(--ink-primary);
-    padding: 0 10px; cursor: pointer; font-size: 1.2rem; transition: 0.2s;
+    padding: 0 12px; cursor: pointer; font-size: 1.2rem; transition: 0.2s;
 }
 .reroll-btn:hover { background: #bbb; color: var(--wine-red); }
-.reroll-large { font-size: 1.2rem; padding: 0 !important; text-align: center; }
 
 /* 结算按钮 */
 .end-btn {
-    flex: 1; margin-top: 15px; padding: 12px;
+    flex: 1; /* 占据剩余空间 */
+    padding: 12px;
     background: var(--accent-red); color: #fff; border: 2px solid var(--ink-primary);
     font-family: var(--font-head); font-size: 1rem; font-weight: bold;
     cursor: pointer; transition: 0.2s;
 }
 .end-btn:hover { background: var(--wine-red); border-color: #000; }
 .end-btn.processing { cursor: wait; opacity: 0.7; }
+
+/* 结算旁的重试按钮：改为小圆角方形，不占用大空间 */
+.reroll-large { 
+    flex: none; /* 不自动伸缩 */
+    width: 46px; 
+    height: 46px; 
+    border: 2px solid var(--ink-primary);
+    background: #e0e0e0;
+    color: #333;
+    font-size: 1.4rem;
+    display: flex; justify-content: center; align-items: center;
+    border-radius: 4px;
+    padding: 0;
+}
+.reroll-large:hover { background: #ccc; color: var(--accent-red); }
 
 /* Modal */
 .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 999; justify-content: center; align-items: center; }

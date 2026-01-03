@@ -1,222 +1,260 @@
-<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>边境契约：无尽债务 (AI加强版)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>异世界还贷模拟器：银刃之约</title>
     <link rel="stylesheet" href="style.css">
+    <!-- 引入字体图标库 (可选，这里用纯CSS模拟图标) -->
 </head>
 <body>
 
-<!-- 顶栏 -->
-<div class="top-bar">
-    <div class="top-stats">
-        <span>日期: <span id="date-display">新绿季 第10日</span></span>
-        <span>资金: <span id="money-display">200铜</span></span>
-        <span>行动力: <span id="ap">5</span>/5</span>
-    </div>
-    <button class="config-btn" onclick="openConfig()">系统与人设设置</button>
-</div>
+    <!-- 顶部装饰栏 -->
+    <div class="gothic-border-top"></div>
 
-<div class="game-wrapper">
-
-    <!-- 左栏：角色信息 -->
-    <aside class="paper-card">
-        <!-- 债主 -->
-        <div class="char-block">
-            <span class="role-label">债主 / 银月骑士团长</span>
-            <span class="role-name">维克多·银刃</span>
-            
-            <div class="avatar-box">
-                <img src="https://cdn.discordapp.com/attachments/1455559611875856386/1455559737935659110/5c47a1231d755a2c.png?ex=6955d3e4&is=69548264&hm=48b879105aa20e2eee876e2b70f24100d1fe3b6618f8e8845badb8a3c0ff6bfe" alt="维克多">
+    <!-- 顶部状态栏 -->
+    <header id="status-bar">
+        <!-- 左侧状态 -->
+        <div class="status-left">
+            <div class="status-group">
+                <span class="label">DATE</span>
+                <span class="value" id="date-display">新绿季 第 1 天</span>
             </div>
-
-            <div class="stat-row"><span>好感度</span> <span id="k-love">50</span></div>
-            <div class="stat-row"><span>位置</span> <span id="k-loc">村庄</span></div>
-            
-            <details>
-                <summary>详细状态</summary>
-                <div class="details-content">
-                    <div class="stat-row"><span>等级</span> <span>80 (黄金阶)</span></div>
-                    <div class="stat-row"><span>心情</span> <span id="k-mood">普通</span></div>
-                    <div class="stat-row"><span>性欲</span> <span id="k-lust">中</span></div>
-                    <div class="stat-row"><span>性器</span> <span id="k-genital">微微勃起</span></div>
-                    <div class="stat-row"><span>衣着</span> <span id="k-cloth">轻便胸甲</span></div>
-                    <div class="stat-row"><span>当前行为</span> <span id="k-act">巡逻</span></div>
-                    <p class="flavor-text" id="k-eval">* 评价: "保持警惕。"</p>
-                </div>
-            </details>
-        </div>
-
-        <!-- 欠债者 -->
-        <div class="char-block" style="border-bottom:none;">
-            <span class="role-label">欠债者 / 孤女</span>
-            <span class="role-name">洛落</span>
-            
-            <div class="avatar-box">
-                <img src="https://cdn.discordapp.com/attachments/1455559611875856386/1455589997980680375/luoluo.png?ex=6955f013&is=69549e93&hm=9ec65023a3bc6a7bca6ba70364e742d72cca6c3a1ecc7c1d518d62d69124c576" alt="洛落">
+            <div class="status-group">
+                <span class="label">FUNDS</span>
+                <span class="value gold-text" id="money-display">0金 0银 200铜</span>
             </div>
-
-            <div class="stat-row" style="color:var(--accent-red); font-weight:bold;">
-                <span>总负债</span> <span id="u-debt">3000金</span>
-            </div>
-            <div class="stat-row">
-                <span>下期还款</span> <span>余 <span id="days-left" class="count-days">7</span> 天</span>
-            </div>
-
-            <details>
-                <summary>详细状态</summary>
-                <div class="details-content">
-                    <div class="bar-label">HP <span id="u-hp-text">100/100</span></div>
-                    <div class="bar-container"><div class="bar-fill hp" id="hp-bar" style="width:100%"></div></div>
-
-                    <div class="bar-label">经验 <span id="u-xp-text">0/100</span></div>
-                    <div class="bar-container"><div class="bar-fill xp" id="xp-bar" style="width:0%"></div></div>
-
-                    <div class="stat-row mt-10"><span>等级</span> <span id="u-lv">1</span></div>
-                    <div class="stat-row"><span>状态</span> <span id="u-state">正常</span></div>
-                    <div class="stat-row"><span>性欲</span> <span id="u-lust">微弱</span></div>
-                    <div class="stat-row"><span>性器</span> <span id="u-genital">干燥</span></div>
-                    <div class="stat-row"><span>衣着</span> <span id="u-cloth">旧亚麻裙</span></div>
-                </div>
-            </details>
-        </div>
-    </aside>
-
-    <!-- 中栏：领地与行动 -->
-    <main class="paper-card">
-        <h2>猎人小屋与领地</h2>
-        
-        <!-- 房屋详细描述 -->
-        <div class="house-container">
-            <div class="house-title" id="house-name">【刚维修完的】猎人小屋</div>
-            <div class="house-desc" id="house-desc">养父留下的唯一遗产，虽然破旧，但勉强能遮风挡雨。</div>
-            <div class="room-grid" id="room-list">
-                <!-- JS生成房屋结构 -->
+            <div class="status-group">
+                <span class="label">AP</span>
+                <span class="value" id="ap-display">100/100</span>
             </div>
         </div>
 
-        <!-- 农田列表 -->
-        <div class="farm-container">
-            <div class="section-header">农田状况</div>
-            <div id="farm-list">
-                <!-- JS生成 -->
-            </div>
-        </div>
-
-        <!-- 随身物品 -->
-        <div class="inventory-container">
-            <div class="section-header">随身物品 (在对话中描述使用)</div>
-            <div id="inventory-list" class="inventory-grid">
-                <!-- JS生成 -->
-                <span style="color:#999; font-style:italic;">暂无物品</span>
-            </div>
-        </div>
-
-        <!-- 随机任务 -->
-        <div class="quest-board" id="daily-quest-area">
-            <div class="quest-header-line">今日委托</div>
-            <div id="quest-content">
-                <!-- JS生成 -->
-            </div>
-            <button class="quest-btn" id="quest-btn" onclick="acceptQuest()">接受委托</button>
-            <div id="quest-status" style="display:none; text-align:center; color:green; margin-top:5px; font-weight:bold;">[ 已接取 ]</div>
-        </div>
-
-        <!-- 标签页 -->
-        <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('act')">每日行动</button>
-            <button class="tab-btn" onclick="switchTab('shop')">集市购物</button>
-        </div>
-
-        <!-- 行动面板 (完全动态生成) -->
-        <div id="tab-act">
-            <div class="action-grid" id="action-list-container">
-                <!-- JS注入 -->
-            </div>
-        </div>
-
-        <!-- 商店面板 (完全动态生成) -->
-        <div id="tab-shop" style="display:none;">
-            <div class="action-grid" id="shop-list-container">
-                <!-- JS注入 -->
-            </div>
-            <div class="cart-area">
-                <div style="font-weight:bold; margin-bottom:5px;">预购清单</div>
-                <div id="cart-list" style="color:#666; font-style:italic;">(空)</div>
-                <div style="text-align:right; margin-top:5px; font-weight:bold;">
-                    总计: <span id="cart-total">0</span> 铜
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- 右栏：交互 -->
-    <aside class="paper-card">
-        <h3>通讯水晶</h3>
-        <div class="chat-box" id="chat-box"></div>
-        <div class="input-group">
-            <input type="text" id="user-input" placeholder="输入对话... (如: 把种子种在1号田)" onkeypress="if(event.key==='Enter') sendChat()">
-            <button id="send-btn" onclick="sendChat()">发送</button>
-            <button id="chat-reroll-btn" class="reroll-btn" onclick="rerollChat()" title="撤回并重试上一条回复">↺</button>
-        </div>
-
-        <!-- 结算区域优化 -->
-        <div style="display:flex; align-items:center; gap:8px; margin-top:15px;">
-            <button id="end-day-btn" class="end-btn" onclick="endDay()">
-                结束今日 / 结算数据
+        <!-- 右侧设置区 -->
+        <div class="top-controls">
+            <button id="btn-lore" class="icon-btn" title="世界书/人物设定">
+                📖 设定
             </button>
-            <!-- 小巧的重试结算按钮 -->
-            <button id="settle-reroll-btn" class="reroll-btn reroll-large" onclick="rerollSettlement()" style="display:none;" title="不满意? 恢复并重来">↺</button>
+            <button id="btn-settings" class="icon-btn" title="系统设置">
+                ⚙️ 设置
+            </button>
         </div>
-    </aside>
+    </header>
 
-</div>
+    <!-- 主体容器 -->
+    <div id="main-container">
+        <!-- 左侧导航栏 -->
+        <nav id="side-nav">
+            <div class="nav-title">MENU</div>
+            <button class="nav-btn active" data-tab="character">角色状态</button>
+            <button class="nav-btn" data-tab="home">住所管理</button>
+            <button class="nav-btn" data-tab="inventory">行囊</button>
+            <button class="nav-btn" data-tab="action">行动</button>
+            <button class="nav-btn" data-tab="events">事件委托</button>
+            <button class="nav-btn" data-tab="comm">通讯</button>
+        </nav>
 
-<!-- 设置与存档 Modal -->
-<div id="config-modal" class="modal">
-    <div class="modal-content">
-        <h3>系统与人设设置</h3>
-        
-        <div style="display:flex; gap:10px; margin-bottom:15px; padding-bottom:15px; border-bottom:1px solid #ccc;">
-             <button class="config-btn" style="border:1px solid var(--ink-primary); color:var(--ink-primary);" onclick="exportData()">📤 导出存档</button>
-             <label class="config-btn" style="border:1px solid var(--ink-primary); color:var(--ink-primary); cursor:pointer;">
-                📥 导入存档
-                <input type="file" id="import-file" style="display:none" onchange="importData(this)">
-             </label>
-        </div>
+        <!-- 内容区域 -->
+        <main id="content-area">
+            
+            <!-- 1. 角色页 (双角色) -->
+            <section id="tab-character" class="tab-content active">
+                <div class="character-split">
+                    <!-- 洛落面板 -->
+                    <div class="char-card player-card">
+                        <div class="card-header">
+                            <h3>洛落 (Luo Luo)</h3>
+                            <span class="role-tag">债务人</span>
+                        </div>
+                        <div class="char-stats">
+                            <div class="stat-row"><span>状态</span> <span id="p-status">健康</span></div>
+                            <div class="stat-row"><span>等级</span> <span id="p-level">1</span></div>
+                            <div class="stat-row"><span>经验</span> <span id="p-exp">0/100</span></div>
+                            <div class="stat-row"><span>性欲</span> <span id="p-lust">0%</span></div>
+                            <div class="stat-row"><span>性器</span> <span id="p-organs">未开发</span></div>
+                            <div class="stat-row"><span>异常</span> <span id="p-abnormal">无</span></div>
+                        </div>
+                        <div class="repayment-box">
+                            <div class="debt-title">本期债务 (第29天截止)</div>
+                            <div class="debt-amount">100 金币</div>
+                            <button id="btn-repay" class="action-btn gothic-btn">偿还债务</button>
+                        </div>
+                    </div>
 
-        <div class="form-row">
-            <label>API Key (DeepSeek/OpenAI 格式):</label>
-            <input type="password" id="api-key" placeholder="sk-...">
-        </div>
-        <div class="form-row">
-            <label>Base URL:</label>
-            <input type="text" id="api-url" value="https://api.deepseek.com">
-        </div>
+                    <!-- 维克多面板 -->
+                    <div class="char-card npc-card">
+                        <div class="card-header">
+                            <h3>维克多·银刃</h3>
+                            <span class="role-tag">银月骑士团长 / 债主</span>
+                        </div>
+                        <div class="char-stats">
+                            <div class="stat-row"><span>所在地</span> <span id="v-location">客厅</span></div>
+                            <div class="stat-row"><span>衣着</span> <span id="v-cloth">轻便骑士服</span></div>
+                            <div class="stat-row"><span>行为</span> <span id="v-action">阅读调查报告</span></div>
+                            <div class="stat-row"><span>好感度</span> <span id="v-affection">30/100</span></div>
+                            <div class="stat-row"><span>性欲</span> <span id="v-lust">5%</span></div>
+                            <div class="stat-row"><span>性器</span> <span id="v-organs">正常</span></div>
+                            <div class="stat-row"><span>异常</span> <span id="v-abnormal">旧伤隐痛</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-        <div class="form-row">
-            <label>骑士人设 (AI扮演准则):</label>
-            <textarea id="knight-prompt" style="height:100px;"></textarea>
-        </div>
+            <!-- 2. 住所页 -->
+            <section id="tab-home" class="tab-content">
+                <div class="section-header">
+                    <h2>猎人小屋 & 农田</h2>
+                </div>
+                
+                <div class="estate-container">
+                    <!-- 房屋区域 -->
+                    <div class="estate-column">
+                        <div class="column-header">
+                            <span>房屋扩建</span>
+                            <button id="btn-expand-house" class="small-btn">增建区域 (100金)</button>
+                        </div>
+                        <div id="house-rooms-list">
+                            <!-- JS生成房间列表 -->
+                        </div>
+                    </div>
 
-        <div class="form-row">
-            <label>世界书 / 背景提示词库 (World Lore):</label>
-            <div style="margin-bottom:5px; font-size:0.85rem; color:#555;">勾选以启用条目。点击 + 新增自定义世界观。</div>
-            <div class="lore-controls">
-                <button class="config-btn small" onclick="addLoreEntry()">+ 新增条目</button>
+                    <!-- 农田区域 -->
+                    <div class="estate-column">
+                        <div class="column-header">
+                            <span>农田管理</span>
+                            <button id="btn-new-field" class="small-btn">开辟新田 (50银)</button>
+                        </div>
+                        <div id="farm-fields-list">
+                            <!-- JS生成农田列表 -->
+                        </div>
+                        <div class="estate-block" style="margin-top:10px;">
+                            <h4>简易牧场</h4>
+                            <p class="desc-text">3只老母鸡 (产蛋中)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 背包页 -->
+            <section id="tab-inventory" class="tab-content">
+                <div class="inventory-grid" id="inventory-grid">
+                    <!-- 动态生成 -->
+                </div>
+            </section>
+
+            <!-- 4. 行动页 -->
+            <section id="tab-action" class="tab-content">
+                <div class="action-menu">
+                    <button class="action-card" onclick="quickAction('hunt')">
+                        <div class="act-title">狩猎 / 采集</div>
+                        <div class="act-cost">消耗 20 AP</div>
+                        <div class="act-desc">前往森林边缘寻找猎物或草药</div>
+                    </button>
+                    <button class="action-card" onclick="quickAction('work_tavern')">
+                        <div class="act-title">酒馆帮工</div>
+                        <div class="act-cost">消耗 30 AP</div>
+                        <div class="act-desc">在村里的酒馆打工赚取铜币</div>
+                    </button>
+                    <button class="action-card" onclick="quickAction('housework')">
+                        <div class="act-title">家务整理</div>
+                        <div class="act-cost">消耗 15 AP</div>
+                        <div class="act-desc">整理房屋，可能触发维克多的对话</div>
+                    </button>
+                </div>
+                <button id="btn-end-day" class="floating-btn">结束今日 (结算)</button>
+            </section>
+
+            <!-- 5. 事件页 -->
+            <section id="tab-events" class="tab-content">
+                <div id="event-panel">
+                    <div class="event-box">
+                        <h3>当前委托</h3>
+                        <p id="event-desc">暂无紧急委托。可以在行动页进行日常活动。</p>
+                    </div>
+                    <div id="punishment-panel" class="hidden warning-panel">
+                        <h3>⚠️ 惩罚日执行中</h3>
+                        <p>维克多正在注视着你...</p>
+                        <button id="btn-punishment-start">接受惩罚</button>
+                        <button id="btn-reroll-punishment">重置惩罚 (剩余3次)</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. 通讯页 -->
+            <section id="tab-comm" class="tab-content">
+                <div id="chat-history" class="chat-container">
+                    <div class="msg system">
+                        <span class="msg-name">系统</span>
+                        <div class="msg-body">维克多·银刃已入住。你需要按时还款。</div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="user-input" placeholder="输入对话或动作...">
+                    <button id="send-btn">发送</button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- 通用提示模态框 -->
+    <div id="modal-overlay" class="hidden">
+        <div class="modal-content gothic-modal">
+            <h3 id="modal-title">TITLE</h3>
+            <p id="modal-body">Content...</p>
+            <div class="modal-actions">
+                <button id="modal-confirm">确认</button>
+                <button id="modal-cancel">取消</button>
             </div>
-            <div id="lore-list" class="lore-list"></div>
-        </div>
-        
-        <div class="btn-row">
-            <button class="config-btn" style="border:1px solid var(--ink-primary); color:var(--ink-primary);" onclick="saveConfigAndClose()">保存并关闭</button>
         </div>
     </div>
-</div>
 
-<script src="script.js"></script>
+    <!-- 设置模态框 -->
+    <div id="modal-settings-overlay" class="hidden">
+        <div class="modal-content gothic-modal wide-modal">
+            <h3>⚙️ 系统设置</h3>
+            <div class="input-group">
+                <label>API Address (Base URL)</label>
+                <input type="text" id="cfg-api-url" placeholder="https://api.openai.com/v1/chat/completions">
+                <small>支持 OpenAI, DeepSeek, Claude 等兼容接口</small>
+            </div>
+            <div class="input-group">
+                <label>API Key</label>
+                <input type="password" id="cfg-api-key" placeholder="sk-...">
+            </div>
+            <div class="modal-actions">
+                <button id="btn-save-settings">保存并关闭</button>
+                <button id="btn-close-settings">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设定/世界书模态框 -->
+    <div id="modal-lore-overlay" class="hidden">
+        <div class="modal-content gothic-modal wide-modal scroll-modal">
+            <h3>📖 世界书 & 人物设定</h3>
+            
+            <div class="lore-section">
+                <h4>基础人物设定 (System Prompt)</h4>
+                <textarea id="cfg-persona" rows="6"></textarea>
+                <small>AI将始终基于此设定进行角色扮演。</small>
+            </div>
+
+            <div class="lore-section">
+                <div class="lore-header">
+                    <h4>世界书条目 (World Info)</h4>
+                    <button id="btn-add-lore" class="small-btn">+ 增加条目</button>
+                </div>
+                <div id="worldbook-list">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button id="btn-save-lore">保存设定</button>
+                <button id="btn-close-lore">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
 </body>
-</html>

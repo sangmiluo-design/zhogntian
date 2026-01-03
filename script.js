@@ -1,596 +1,478 @@
-/* =========================================
-   边境契约 - 核心逻辑 (AI 全量驱动版 - 修正增强)
-   ========================================= */
+// --- 核心配置 ---
+const CONFIG = {
+    rates: { gold: 100, silver: 10 },
+    seasons: ["新绿季 (春)", "炎阳季 (夏)", "金穗季 (秋)", "霜寂季 (冬)"],
+    cycleLength: 31,
+    repaymentDay: 29
+};
 
-const initialKnightPersona = `你扮演维克多·银刃，银月骑士团团长。
-性格：冷峻、严谨、外冷内热。说话不带表情符号，简洁有力，有骑士风度。
-动机：表面催债，实则监视这片区域寻找骗局线索，同时也隐晦地希望洛落能活下去。
-对玩家称呼："你" 或 "洛落"。`;
+// --- 用户自定义配置 (默认值) ---
+let userConfig = {
+    apiUrl: "https://api.openai.com/v1/chat/completions",
+    apiKey: "", // 用户未填
+    persona: `【维克多·银刃档案】
+姓名：维克多·银刃 | 年龄：32岁 | 种族：人类
+属性：力量B/敏捷A/耐力B/智力B/魅力A
+职位：银月骑士团团长 | 家族：银月城骑士世家
+外貌：黑发紫眸，左脸有道细疤，身材高大。
+性格：冷峻、严谨、外冷内热、有责任感。
+背景：维克托替洛落养父还了赌债，现为洛落的债主。他暂住在洛落家（猎人小屋）是为了监视进出森林的可疑人员，调查"月光宝石"骗局。
 
-// 初始状态
-const defaultState = {
-    season: "新绿季", 
-    day: 10,          
-    money: 200,       
-    debt: 300000,     
-    daysUntilPay: 7,  
-    ap: 5,
-    user: {
-        hp: 100, max_hp: 100,
-        lv: 1, xp: 0, next_lv_xp: 100,
-        clothes: "旧亚麻裙",
-        status: "正常",
-        lust: "微弱",
-        genital: "干燥"
+【洛落档案】
+姓名：洛落 | 性别：女 | 种族：人类
+背景：被半精灵猎人收养的弃婴。养父欠债跑路，洛落独自面对债务。目前在维克多的监督下努力打工还钱。
+
+【关系】
+维克多是债主和房客，洛落是欠债人和房东。两人同住一个屋檐下。`,
+    worldBook: [
+        { id: 1, active: true, content: "银月国：位于大陆西侧的人类王国，崇尚骑士精神。" },
+        { id: 2, active: true, content: "月光宝石：一种传说能增强魔力的宝石，最近市面上出现了大量赝品。" }
+    ]
+};
+
+// --- 游戏状态 ---
+let gameState = {
+    date: {
+        totalDays: 1,
+        cycleDay: 1,
+        seasonIndex: 0
     },
-    knight: {
-        love: 50, mood: "普通", 
-        location: "村庄", action: "巡逻",
-        lust: "中", genital: "微微勃起", clothes: "轻便胸甲",
-        eval: "* 评价: \"保持警惕。\""
+    money: 200, // 铜币
+    debt: {
+        amount: 10000, 
+        isPaid: false
     },
-    house: {
-        name: "【刚维修完的】猎人小屋",
-        desc: "养父留下的唯一遗产，虽然破旧，但勉强能遮风挡雨。",
+    player: {
+        status: "健康",
+        level: 1,
+        exp: 0,
+        lust: 0,
+        organs: "未开发",
+        abnormal: "无",
+        ap: 100,
+        maxAp: 100
+    },
+    npc: {
+        name: "维克多·银刃",
+        location: "客厅",
+        cloth: "轻便骑士服",
+        action: "阅读调查报告",
+        affection: 30,
+        lust: 5,
+        organs: "正常",
+        abnormal: "旧伤隐痛"
+    },
+    home: {
         rooms: [
-            { name: "卧室 LV1", desc: "家具: 单人床1，床头柜1，新衣柜1" },
-            { name: "厨房 LV1", desc: "家具: 新灶台1，烤炉1，橱柜1" },
-            { name: "客厅 LV1", desc: "家具: 方木桌1，摇椅1，铜灯1" },
-            { name: "平台阳台 LV1", desc: "家具: 无" }
+            { id: 'bed', level: 1, name: '卧室', desc: '睡眠区重新布置。单人床、床头柜、新衣柜。' },
+            { id: 'kitchen', level: 1, name: '厨房', desc: '基础烹饪。灶台、烤炉、橱柜。' },
+            { id: 'living', level: 1, name: '客厅', desc: '重新铺设地板。方木桌、摇椅、铜灯。' }
         ]
     },
-    farms: [
-        { id: 1, type: "旱田", crop: "无", status: "空闲" },
-        { id: 2, type: "旱田", crop: "无", status: "空闲" }
+    farm: [
+        { id: 1, level: 1, type: '旱田', crop: '月光麦', stage: '抽穗期', water: '充足' },
+        { id: 2, level: 1, type: '旱田', crop: '月光麦', stage: '抽穗期', water: '充足' }
     ],
-    inventory: ["破损的水壶"], 
-    quest: { name: "暂无", desc: "暂无委托", reward: 0, cost: 0 }, 
-    dailyActions: [], 
-    shopItems: []     
+    pendingActions: []
 };
 
-// 全局变量
-let gameState = JSON.parse(JSON.stringify(defaultState));
-let daySnapshot = null; // 用于完美回滚：存储结算前一刻的所有状态和日志
-let config = {
-    apiKey: "",
-    baseUrl: "https://api.deepseek.com",
-    knightPrompt: initialKnightPersona,
-    worldLore: [] 
-};
-let chatHistory = [];
-let dailyLogs = [];
-let cart = [];
-let pendingQuestReward = 0;
-
-window.onload = function() {
-    loadData();
-    if(gameState.dailyActions.length === 0) generateDefaultActions();
-    if(gameState.shopItems.length === 0) generateDefaultShop();
-    if(!gameState.quest || gameState.quest.name === "暂无") generateDefaultQuest();
+// --- 初始化 ---
+document.addEventListener('DOMContentLoaded', () => {
+    updateUI();
+    renderHome();
     
-    updateInputFields();
-    renderUI();
-    
-    if(chatHistory.length === 0) {
-        addMsg("系统: 连接建立... 骑士团长维克多已上线。", "system");
-    } else {
-        const box = document.getElementById('chat-box');
-        box.innerHTML = '';
-        chatHistory.forEach(c => {
-            if(c.role !== 'system') addMsg(c.content, c.role === 'user' ? 'user' : 'knight');
+    // UI Tab切换
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            document.getElementById(`tab-${e.currentTarget.dataset.tab}`).classList.add('active');
         });
+    });
+
+    // 顶部设置按钮
+    document.getElementById('btn-settings').addEventListener('click', openSettings);
+    document.getElementById('btn-lore').addEventListener('click', openLore);
+    
+    // 设置/设定保存按钮
+    document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+    document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('modal-settings-overlay').classList.add('hidden'));
+    document.getElementById('btn-save-lore').addEventListener('click', saveLore);
+    document.getElementById('btn-close-lore').addEventListener('click', () => document.getElementById('modal-lore-overlay').classList.add('hidden'));
+    document.getElementById('btn-add-lore').addEventListener('click', addLoreEntry);
+
+    // 游戏内按钮
+    document.getElementById('btn-new-field').addEventListener('click', expandField);
+    document.getElementById('btn-expand-house').addEventListener('click', expandHouse);
+    document.getElementById('btn-end-day').addEventListener('click', endDay);
+    document.getElementById('send-btn').addEventListener('click', handleUserChat);
+    document.getElementById('btn-repay').addEventListener('click', repayDebt);
+    document.getElementById('modal-cancel').addEventListener('click', closeModal);
+});
+
+// --- UI 更新逻辑 ---
+
+function updateUI() {
+    // 基础显示
+    const sIndex = Math.floor((gameState.date.totalDays - 1) / 30) % 4;
+    document.getElementById('date-display').innerText = `${CONFIG.seasons[sIndex]} 第 ${gameState.date.cycleDay} 天`;
+
+    const m = gameState.money;
+    document.getElementById('money-display').innerText = `${Math.floor(m / 100)}金 ${Math.floor((m % 100) / 10)}银 ${m % 10}铜`;
+    document.getElementById('ap-display').innerText = `${gameState.player.ap}/${gameState.player.maxAp}`;
+
+    // 洛落
+    document.getElementById('p-status').innerText = gameState.player.status;
+    document.getElementById('p-level').innerText = gameState.player.level;
+    document.getElementById('p-exp').innerText = `${gameState.player.exp}/100`;
+    document.getElementById('p-lust').innerText = `${gameState.player.lust}%`;
+    document.getElementById('p-organs').innerText = gameState.player.organs;
+    document.getElementById('p-abnormal').innerText = gameState.player.abnormal;
+
+    // 维克多
+    document.getElementById('v-location').innerText = gameState.npc.location;
+    document.getElementById('v-cloth').innerText = gameState.npc.cloth;
+    document.getElementById('v-action').innerText = gameState.npc.action;
+    document.getElementById('v-affection').innerText = `${gameState.npc.affection}/100`;
+    document.getElementById('v-lust').innerText = `${gameState.npc.lust}%`;
+    document.getElementById('v-organs').innerText = gameState.npc.organs;
+    document.getElementById('v-abnormal').innerText = gameState.npc.abnormal;
+
+    // 还款按钮
+    const btnRepay = document.getElementById('btn-repay');
+    if (gameState.date.cycleDay === 29 && !gameState.debt.isPaid) {
+        btnRepay.style.display = 'block';
+        btnRepay.innerText = "立即还款 (100金)";
+    } else if (gameState.debt.isPaid) {
+        btnRepay.style.display = 'block';
+        btnRepay.innerText = "本期已结清";
+        btnRepay.disabled = true;
+    } else {
+        btnRepay.style.display = 'none';
     }
+}
+
+function renderHome() {
+    // 渲染房屋
+    const houseList = document.getElementById('house-rooms-list');
+    houseList.innerHTML = '';
+    gameState.home.rooms.forEach((room, index) => {
+        const div = document.createElement('div');
+        div.className = 'estate-block';
+        div.innerHTML = `
+            <h4>
+                ${room.name} Lv.${room.level}
+                <button class="upgrade-btn-small" onclick="upgradeRoom(${index})">⬆ 升级</button>
+            </h4>
+            <p class="desc-text">${room.desc}</p>
+        `;
+        houseList.appendChild(div);
+    });
+
+    // 渲染农田
+    const farmList = document.getElementById('farm-fields-list');
+    farmList.innerHTML = '';
+    gameState.farm.forEach((field, index) => {
+        const div = document.createElement('div');
+        div.className = 'estate-block';
+        div.innerHTML = `
+            <h4>
+                ${field.id}号 ${field.type} (Lv.${field.level})
+                <button class="upgrade-btn-small" onclick="upgradeField(${index})">⬆ 升级</button>
+            </h4>
+            <p class="desc-text">作物: ${field.crop} | 阶段: ${field.stage} | 水量: ${field.water}</p>
+        `;
+        farmList.appendChild(div);
+    });
+}
+
+// --- 升级与扩建系统 ---
+
+function upgradeRoom(index) {
+    const room = gameState.home.rooms[index];
+    const cost = room.level * 2000; // 升级费用: 等级*20银
+    showModal("升级房间", `将 [${room.name}] 升级到 Lv.${room.level + 1}？\n费用: ${cost/10} 银币`, () => {
+        if (gameState.money >= cost) {
+            gameState.money -= cost;
+            room.level++;
+            // 简单的描述变更，可由AI后续润色
+            room.desc += " (已修缮翻新)";
+            updateUI();
+            renderHome();
+            addMessage("system", `房间 ${room.name} 升级成功！环境变得更舒适了。`);
+        } else {
+            alert("资金不足！");
+        }
+    });
+}
+
+function upgradeField(index) {
+    const field = gameState.farm[index];
+    const cost = field.level * 1000; // 10银
+    showModal("改良土壤", `升级 ${field.id}号农田的土壤肥力？\n费用: ${cost/10} 银币`, () => {
+        if (gameState.money >= cost) {
+            gameState.money -= cost;
+            field.level++;
+            updateUI();
+            renderHome();
+            addMessage("system", `${field.id}号农田土壤改良完成，作物生长速度可能提升。`);
+        } else {
+            alert("资金不足！");
+        }
+    });
+}
+
+function expandField() {
+    const currentFields = gameState.farm.length;
+    const cost = 500 + (currentFields - 2) * 500; 
+    showModal("开垦荒地", `开辟第 ${currentFields + 1} 号农田。\n费用: ${cost/10} 银币`, () => {
+        if (gameState.money >= cost) {
+            gameState.money -= cost;
+            gameState.farm.push({
+                id: currentFields + 1,
+                level: 1,
+                type: '旱田',
+                crop: '无',
+                stage: '荒芜',
+                water: '干燥'
+            });
+            updateUI();
+            renderHome();
+            addMessage("system", `已开辟新农田。`);
+        } else {
+            alert("资金不足！");
+        }
+    });
+}
+
+function expandHouse() {
+    const cost = 10000;
+    showModal("增建房屋", `扩建房屋增加一个新区域。\n费用: 100 金币`, () => {
+        if (gameState.money >= cost) {
+            const areaName = prompt("请输入新区域名称 (如：观景阳台)：", "观景阳台");
+            if(areaName) {
+                gameState.money -= cost;
+                gameState.home.rooms.push({
+                    id: 'extra_' + Date.now(),
+                    level: 1,
+                    name: areaName,
+                    desc: '刚刚建成的崭新区域。'
+                });
+                updateUI();
+                renderHome();
+                addMessage("system", `房屋扩建成功：${areaName}`);
+            }
+        } else {
+            alert("资金不足！");
+        }
+    });
+}
+
+// --- 设置与世界书逻辑 ---
+
+function openSettings() {
+    document.getElementById('cfg-api-url').value = userConfig.apiUrl;
+    document.getElementById('cfg-api-key').value = userConfig.apiKey;
+    document.getElementById('modal-settings-overlay').classList.remove('hidden');
+}
+
+function saveSettings() {
+    userConfig.apiUrl = document.getElementById('cfg-api-url').value;
+    userConfig.apiKey = document.getElementById('cfg-api-key').value;
+    document.getElementById('modal-settings-overlay').classList.add('hidden');
+    addMessage("system", "系统设置已保存。");
+}
+
+function openLore() {
+    document.getElementById('cfg-persona').value = userConfig.persona;
+    renderWorldBookList();
+    document.getElementById('modal-lore-overlay').classList.remove('hidden');
+}
+
+function renderWorldBookList() {
+    const list = document.getElementById('worldbook-list');
+    list.innerHTML = '';
+    userConfig.worldBook.forEach((entry, index) => {
+        const div = document.createElement('div');
+        div.className = 'worldbook-item';
+        div.innerHTML = `
+            <input type="checkbox" class="wb-checkbox" ${entry.active ? 'checked' : ''} onchange="toggleLore(${index})">
+            <input type="text" class="wb-input" value="${entry.content}" onchange="updateLoreText(${index}, this.value)">
+            <button class="wb-del-btn" onclick="deleteLore(${index})">X</button>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function addLoreEntry() {
+    userConfig.worldBook.push({ id: Date.now(), active: true, content: "新设定的内容..." });
+    renderWorldBookList();
+}
+
+window.toggleLore = (index) => { userConfig.worldBook[index].active = !userConfig.worldBook[index].active; };
+window.updateLoreText = (index, val) => { userConfig.worldBook[index].content = val; };
+window.deleteLore = (index) => {
+    userConfig.worldBook.splice(index, 1);
+    renderWorldBookList();
 };
 
-// --- 数据管理 ---
-function saveData() {
-    const data = { gameState, config, chatHistory };
-    localStorage.setItem('rpg_save_data_enhanced_v2', JSON.stringify(data));
+function saveLore() {
+    userConfig.persona = document.getElementById('cfg-persona').value;
+    // WorldBook is already updated in real-time via onchange
+    document.getElementById('modal-lore-overlay').classList.add('hidden');
+    addMessage("system", "世界书与人物设定已更新。");
 }
 
-function loadData() {
-    const raw = localStorage.getItem('rpg_save_data_enhanced_v2');
-    if(raw) {
-        try {
-            const data = JSON.parse(raw);
-            gameState = { ...defaultState, ...data.gameState };
-            config = data.config || config;
-            if (typeof config.worldLore === 'string') config.worldLore = [];
-            chatHistory = data.chatHistory || [];
-        } catch(e) { console.error("Load Error", e); }
+// --- 游戏行为 ---
+
+function quickAction(type) {
+    if (type === 'hunt') {
+        if(gameState.player.ap < 20) return alert("体力不足");
+        gameState.player.ap -= 20;
+        gameState.pendingActions.push("在森林边缘狩猎采集");
+        addMessage("system", "你出发去森林寻找物资...");
+    } else if (type === 'work_tavern') {
+        if(gameState.player.ap < 30) return alert("体力不足");
+        gameState.player.ap -= 30;
+        gameState.pendingActions.push("在酒馆当服务生赚取铜币");
+        addMessage("system", "你在酒馆忙碌了一整天。");
+    } else if (type === 'housework') {
+        if(gameState.player.ap < 15) return alert("体力不足");
+        gameState.player.ap -= 15;
+        gameState.pendingActions.push("打扫家里卫生，维克多就在旁边");
+        addMessage("system", "你开始整理家务...");
     }
+    updateUI();
 }
 
-function exportData() {
-    saveData();
-    const raw = localStorage.getItem('rpg_save_data_enhanced_v2');
-    const blob = new Blob([raw], {type: "application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `边境契约_存档_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
+function repayDebt() {
+    const amount = gameState.debt.amount;
+    showModal("偿还债务", `偿还本期债务: 100 金币`, () => {
+        if (gameState.money >= amount) {
+            gameState.money -= amount;
+            gameState.debt.isPaid = true;
+            updateUI();
+            addMessage("system", "债务已结清。维克多默默点了点头。");
+        } else {
+            alert("金额不足。");
+        }
+    });
 }
 
-function importData(input) {
-    const file = input.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const data = JSON.parse(e.target.result);
-            gameState = data.gameState;
-            config = data.config;
-            chatHistory = data.chatHistory;
-            saveData();
-            location.reload();
-        } catch(err) { alert("存档格式错误"); }
-    };
-    reader.readAsText(file);
+// --- AI 集成 ---
+
+async function endDay() {
+    gameState.date.cycleDay++;
+    gameState.date.totalDays++;
+    gameState.player.ap = gameState.player.maxAp;
+
+    // 简单收益模拟
+    let dailyIncome = 0;
+    if (gameState.pendingActions.some(a => a.includes("酒馆"))) dailyIncome += 50;
+    if (gameState.pendingActions.some(a => a.includes("狩猎"))) dailyIncome += 30;
+    gameState.money += dailyIncome;
+
+    const actions = gameState.pendingActions.join("，");
+    gameState.pendingActions = [];
+
+    // 构建提示词
+    const activeLore = userConfig.worldBook.filter(e => e.active).map(e => e.content).join("\n");
+    const systemPrompt = `
+${userConfig.persona}
+
+【世界观补充 (World Book)】
+${activeLore}
+
+【当前状态】
+时间：${CONFIG.seasons[Math.floor((gameState.date.totalDays - 1) / 30) % 4]} 第${gameState.date.cycleDay-1}天。
+玩家(洛落)行为：${actions || "休息了一天"}。
+维克多好感度：${gameState.npc.affection}。
+玩家金钱：${gameState.money}铜。
+
+请以【维克多·银刃】的视角或旁白视角，对今日进行结算总结。
+    `;
+
+    addMessage("system", `=== 第 ${gameState.date.cycleDay-1} 天结算 ===\n获得收益: ${dailyIncome}铜`);
+    await callAI(systemPrompt, "请生成今日日结剧情。");
+    
+    updateUI();
 }
 
-// --- 默认生成器 ---
-function generateDefaultActions() {
-    gameState.dailyActions = [
-        { name: "农田浇水", cost: 1, desc: "照顾作物" },
-        { name: "整理房间", cost: 1, desc: "改善环境" },
-        { name: "酒馆帮工", cost: 2, desc: "赚取铜币" }
-    ];
-}
-function generateDefaultShop() {
-    gameState.shopItems = [
-        { name: "黑麦面包", price: 5 },
-        { name: "番茄种子", price: 10 },
-        { name: "初级治疗药水", price: 50 },
-        { name: "亚麻布", price: 20 }
-    ];
-}
-function generateDefaultQuest() {
-    gameState.quest = { name: "清理碎石", desc: "村长需要人手清理道路。", reward: 30, cost: 2 };
-}
-
-// --- 游戏交互 ---
-
-function acceptQuest() {
-    const q = gameState.quest;
-    if(gameState.ap < q.cost) { addMsg("系统: 行动力不足。", "system"); return; }
-    gameState.ap -= q.cost;
-    pendingQuestReward = q.reward;
-    dailyLogs.push(`[委托] 完成了"${q.name}"，预期报酬 ${q.reward}。`);
-    addMsg(`系统: 完成委托 "${q.name}" (耗时 ${q.cost} AP)。`, "system");
-    renderUI();
-    saveData();
-}
-
-function doAction(name, cost) {
-    if(gameState.ap < cost) { addMsg("系统: 行动力不足。", "system"); return; }
-    gameState.ap -= cost;
-    dailyLogs.push(`[行动] 进行了"${name}"。`);
-    addMsg(`系统: 进行 ${name} (消耗 ${cost} AP)。`, "system");
-    renderUI();
-    saveData();
-}
-
-function addToCart(name, price) {
-    cart.push({name, price});
-    updateCartDisplay();
-}
-
-function updateCartDisplay() {
-    const list = document.getElementById('cart-list');
-    const totalEl = document.getElementById('cart-total');
-    if(cart.length === 0) {
-        list.innerHTML = '(空)'; totalEl.innerText = '0'; return;
-    }
-    let total = 0;
-    list.innerHTML = cart.map(item => {
-        total += item.price;
-        return `<div class="cart-item"><span>${item.name}</span><span>${item.price}</span></div>`;
-    }).join('');
-    totalEl.innerText = total;
-    totalEl.style.color = total > gameState.money ? 'red' : 'inherit';
-}
-
-// --- AI 核心 ---
-
-function getActiveLoreText() {
-    return config.worldLore.filter(i => i.active).map(i => i.text).join('\n\n');
-}
-
-function getRecentContext() {
-    return chatHistory.slice(-30); // 取最近30条作为上下文
-}
-
-// 1. 聊天
-async function sendChat() {
+async function handleUserChat() {
     const input = document.getElementById('user-input');
     const text = input.value.trim();
-    if(!text) return;
-
-    addMsg(text, "user");
-    input.value = "";
-    chatHistory.push({role: "user", content: text, day: gameState.day});
-    saveData();
-
-    const btn = document.getElementById('send-btn');
-    btn.innerText = "..."; btn.disabled = true;
-
-    const sysPrompt = `
-    【基本设定】
-    ${config.knightPrompt}
-    【世界设定】
-    ${getActiveLoreText()}
-    【当前状态】
-    日期: ${gameState.season} 第${gameState.day}日
-    好感: ${gameState.knight.love} | 心情: ${gameState.knight.mood}
-    随身物品: ${JSON.stringify(gameState.inventory)}
+    if (!text) return;
     
-    请以维克多身份回复。如果玩家提到使用了物品（如"把种子种下"），请在回复中自然地描述结果，但实际数值变化将在日结时处理。
-    `;
+    addMessage("user", text);
+    input.value = '';
 
-    try {
-        const messages = [{role: "system", content: sysPrompt}, ...getRecentContext()];
-        const reply = await callAPI(messages, false);
-        if(reply) {
-            addMsg(reply, "knight");
-            chatHistory.push({role: "assistant", content: reply, day: gameState.day});
-            saveData();
-        }
-    } catch(e) {
-        addMsg("系统: 通讯失败。", "system");
-    } finally {
-        btn.innerText = "发送"; btn.disabled = false;
-    }
+    const activeLore = userConfig.worldBook.filter(e => e.active).map(e => e.content).join("\n");
+    const systemPrompt = `
+${userConfig.persona}
+【世界观补充】
+${activeLore}
+`;
+    
+    await callAI(systemPrompt, `(当前场景：洛落家中) 洛落说：${text}`);
 }
 
-// 重Roll对话
-async function rerollChat() {
-    if(chatHistory.length === 0) return;
-    const lastMsg = chatHistory[chatHistory.length - 1];
-    
-    if(lastMsg.role === 'assistant') {
-        chatHistory.pop();
-        const box = document.getElementById('chat-box');
-        if(box.lastChild) box.removeChild(box.lastChild);
-        
-        const userMsg = chatHistory[chatHistory.length - 1];
-        if(userMsg && userMsg.role === 'user') {
-            const btn = document.getElementById('send-btn');
-            btn.innerText = "重试中..."; btn.disabled = true;
-
-            const sysPrompt = `
-            ${config.knightPrompt}
-            (请重新生成上一条回复，尝试不同的语气或内容)
-            `;
-            try {
-                const messages = [{role: "system", content: sysPrompt}, ...getRecentContext()];
-                const reply = await callAPI(messages, false);
-                if(reply) {
-                    addMsg(reply, "knight");
-                    chatHistory.push({role: "assistant", content: reply, day: gameState.day});
-                    saveData();
-                }
-            } catch(e) { addMsg("系统: 重试失败。", "system"); } 
-            finally { btn.innerText = "发送"; btn.disabled = false; }
-        }
+async function callAI(systemContext, userMsg) {
+    if (!userConfig.apiKey) {
+        setTimeout(() => {
+            addMessage("ai", "（请点击右上角⚙️设置按钮，配置API Key以开启AI对话功能）");
+        }, 500);
+        return;
     }
-}
-
-// 2. 每日结算 (重头戏)
-async function endDay() {
-    const btn = document.getElementById('end-day-btn');
-    const rerollBtn = document.getElementById('settle-reroll-btn');
-    if(btn.classList.contains('processing')) return;
-    
-    // 【关键】创建当日快照：保存状态、日志、购物车、奖励。这样回退时AI能看到当时的完整情况
-    daySnapshot = {
-        gameState: JSON.parse(JSON.stringify(gameState)),
-        dailyLogs: JSON.parse(JSON.stringify(dailyLogs)),
-        cart: JSON.parse(JSON.stringify(cart)),
-        pendingQuestReward: pendingQuestReward
-    };
-    
-    btn.classList.add('processing'); btn.innerText = "结算中...";
-    rerollBtn.style.display = 'none';
-
-    // 预计算金钱
-    let cartTotal = cart.reduce((sum, item) => sum + item.price, 0);
-    let estimatedMoney = gameState.money + pendingQuestReward - cartTotal;
-    if(estimatedMoney < 0) estimatedMoney = 0;
-
-    const sysPrompt = `
-    你是一个硬核RPG游戏主脑。请根据今日数据进行结算，并以 **纯JSON格式** 返回结果。
-    
-    【世界设定】
-    ${getActiveLoreText()}
-    
-    【当前数据】
-    ${JSON.stringify(gameState)}
-    
-    【今日发生】
-    日志: ${JSON.stringify(dailyLogs)}
-    购买: ${JSON.stringify(cart)} (总价: ${cartTotal})
-    委托奖励: ${pendingQuestReward}
-    对话摘要: ${JSON.stringify(getRecentContext().slice(-10))}
-    
-    【必须执行的逻辑】
-    1. **物品交互检测 (重要)**: 
-       - 仔细阅读“对话摘要”和“日志”。
-       - 如果玩家描述了**使用物品**（如"种下番茄种子"、"喝药水"），必须从 inventory 中**移除**该物品，并更新对应状态（如将某块田的status改为"种植中"、增加HP）。
-       - 如果购买了新物品，确保加入 inventory。
-    2. **全量更新状态**: 
-       - 推导所有角色字段。
-       - 农田逻辑：有浇水则生长，无浇水则干涸。
-    3. **动态内容生成 (重要)**:
-       - **dailyActions**: 不要照抄旧的！根据今日剧情生成 3-4 个明天的行动。例如：如果今日帮了裁缝，明日可加入"裁缝店继续帮忙"。
-       - **shopItems**: 不要照抄旧的！根据季节和需求生成 4 个商品。
-       - **quest**: 生成 1 个新委托。
-    
-    【JSON 输出格式】
-    {
-        "newState": { ...更新后的完整gameState... },
-        "narrative": "剧情总结，请明确描述物品使用结果（如：你种下了种子...）、购物结果及身体反应",
-        "knightComment": "维克多的一句评价"
-    }
-    `;
 
     try {
-        const reply = await callAPI([{role: "user", content: sysPrompt}], true);
-        const cleanJson = reply.replace(/```json/g, '').replace(/```/g, '').trim();
-        const result = JSON.parse(cleanJson);
-
-        // 应用更新
-        gameState = result.newState;
+        const res = await fetch(userConfig.apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userConfig.apiKey}`
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo", // 如果是用DeepSeek，通常这里填 deepseek-chat
+                messages: [
+                    {role: "system", content: systemContext},
+                    {role: "user", content: userMsg}
+                ],
+                temperature: 0.7
+            })
+        });
         
-        // 强制重置循环逻辑
-        gameState.ap = 5; 
-        dailyLogs = [];
-        cart = [];
-        pendingQuestReward = 0;
-        gameState.day += 1;
-        gameState.daysUntilPay = Math.max(0, gameState.daysUntilPay - 1);
-
-        updateCartDisplay();
-        renderUI();
+        if (!res.ok) throw new Error(`API Error: ${res.status}`);
         
-        addMsg("------ [ 日结报告 ] ------", "system");
-        addMsg(result.narrative, "system");
-        addMsg(`维克多: "${result.knightComment}"`, "knight");
-        
-        saveData();
-        
-        // 显示重试按钮
-        rerollBtn.style.display = 'block';
-
-    } catch(e) {
+        const data = await res.json();
+        // 兼容不同API返回结构，通常是 choices[0].message.content
+        const content = data.choices ? data.choices[0].message.content : JSON.stringify(data);
+        addMessage("ai", content);
+    } catch (e) {
         console.error(e);
-        addMsg("系统: 结算异常 (请检查网络或API)。", "system");
-        // 如果失败，恢复快照以免数据损坏
-        if(daySnapshot) {
-            gameState = daySnapshot.gameState;
-            dailyLogs = daySnapshot.dailyLogs;
-            cart = daySnapshot.cart;
-            pendingQuestReward = daySnapshot.pendingQuestReward;
-        }
-    } finally {
-        btn.classList.remove('processing'); btn.innerText = "结束今日 / 结算数据";
+        addMessage("system", "AI连接失败: " + e.message);
     }
 }
 
-// 完美重Roll结算
-function rerollSettlement() {
-    if(!daySnapshot) return;
-    if(confirm("确定要回滚到结算前并重新计算吗？(AI将重新评估你的所有行为)")) {
-        // 恢复快照：就像时间倒流到点击结算按钮的那一刻
-        gameState = JSON.parse(JSON.stringify(daySnapshot.gameState));
-        dailyLogs = JSON.parse(JSON.stringify(daySnapshot.dailyLogs));
-        cart = JSON.parse(JSON.stringify(daySnapshot.cart));
-        pendingQuestReward = daySnapshot.pendingQuestReward;
-        
-        // 刷新界面
-        renderUI();
-        updateCartDisplay();
-        
-        addMsg("系统: 时间回溯成功，正在根据旧日志重新结算...", "system");
-        
-        // 立即重新触发结算
-        endDay();
-    }
-}
-
-// --- API 调用 ---
-async function callAPI(messages, jsonMode) {
-    if(!config.apiKey) { alert("请配置 API Key"); return null; }
-    
-    const payload = {
-        model: "deepseek-chat",
-        messages: messages,
-        temperature: 0.85, // 提高温度以增加动态内容的随机性
-        stream: false
-    };
-    if(jsonMode) payload.response_format = { type: "json_object" };
-
-    const res = await fetch(`${config.baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${config.apiKey}` },
-        body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    return data.choices[0].message.content;
-}
-
-// --- 渲染 UI ---
-function formatMoney(copper) {
-    if(isNaN(copper)) return "0铜";
-    if(copper < 100) return `${Math.floor(copper)}铜`;
-    const silver = Math.floor(copper / 10);
-    if(silver < 10) return `${silver}银 ${Math.floor(copper%10)}铜`;
-    const gold = Math.floor(copper / 100);
-    return `${gold}金 ${Math.floor((copper%100)/10)}银`;
-}
-
-function renderUI() {
-    // 顶栏
-    document.getElementById('date-display').innerText = `${gameState.season} 第${gameState.day}日`;
-    document.getElementById('money-display').innerText = formatMoney(gameState.money);
-    document.getElementById('ap').innerText = gameState.ap;
-    
-    // 骑士
-    const k = gameState.knight;
-    document.getElementById('k-love').innerText = k.love;
-    document.getElementById('k-loc').innerText = k.location;
-    document.getElementById('k-mood').innerText = k.mood;
-    document.getElementById('k-act').innerText = k.action;
-    document.getElementById('k-lust').innerText = k.lust;
-    document.getElementById('k-genital').innerText = k.genital;
-    document.getElementById('k-cloth').innerText = k.clothes;
-    document.getElementById('k-eval').innerText = k.eval || "";
-
-    // 用户
-    const u = gameState.user;
-    document.getElementById('u-hp-text').innerText = `${u.hp}/${u.max_hp}`;
-    document.getElementById('hp-bar').style.width = `${Math.min(100, (u.hp / u.max_hp) * 100)}%`;
-    
-    document.getElementById('u-xp-text').innerText = `${u.xp}/${u.next_lv_xp}`;
-    document.getElementById('xp-bar').style.width = `${Math.min(100, (u.xp / u.next_lv_xp) * 100)}%`;
-
-    document.getElementById('u-lv').innerText = u.lv;
-    document.getElementById('u-cloth').innerText = u.clothes;
-    document.getElementById('u-debt').innerText = formatMoney(gameState.debt);
-    document.getElementById('days-left').innerText = gameState.daysUntilPay;
-    document.getElementById('u-state').innerText = u.status;
-    document.getElementById('u-lust').innerText = u.lust;
-    document.getElementById('u-genital').innerText = u.genital;
-
-    // 房屋
-    if(gameState.house) {
-        document.getElementById('house-name').innerText = gameState.house.name;
-        document.getElementById('house-desc').innerText = gameState.house.desc;
-        const roomDiv = document.getElementById('room-list');
-        roomDiv.innerHTML = gameState.house.rooms.map(r => `
-            <div class="room-item">
-                <strong>${r.name}</strong><br>
-                <span class="furniture">${r.desc}</span>
-            </div>
-        `).join('');
-    }
-
-    // 农田
-    const farmDiv = document.getElementById('farm-list');
-    farmDiv.innerHTML = gameState.farms.map(f => 
-        `<div style="padding:4px 0; border-bottom:1px dashed #eee;">
-            ${f.id}号${f.type}: <strong>${f.crop}</strong> (${f.status})
-        </div>`
-    ).join('');
-
-    // 随身物品
-    const invDiv = document.getElementById('inventory-list');
-    if(gameState.inventory && gameState.inventory.length > 0) {
-        invDiv.innerHTML = gameState.inventory.map(item => 
-            `<div class="inv-item" title="在聊天中描述使用该物品">${item}</div>`
-        ).join('');
-    } else {
-        invDiv.innerHTML = '<span style="color:#999; font-style:italic;">暂无物品</span>';
-    }
-    
-    // 动态生成：委托
-    const q = gameState.quest;
-    const qArea = document.getElementById('quest-content');
-    if(q) {
-        qArea.innerHTML = `
-            <div style="font-weight:bold; margin-bottom:2px;">${q.name}</div>
-            <div style="font-size:0.85rem; color:#555; margin-bottom:5px;">${q.desc}</div>
-            <div style="font-size:0.85rem;">
-                <span>报酬: ${formatMoney(q.reward)}</span> | <span>耗时: ${q.cost} AP</span>
-            </div>
-        `;
-        const qBtn = document.getElementById('quest-btn');
-        const qStatus = document.getElementById('quest-status');
-        if (pendingQuestReward > 0) {
-            qBtn.style.display = 'none'; qStatus.style.display = 'block';
-        } else {
-            qBtn.style.display = 'block'; qStatus.style.display = 'none';
-            qBtn.innerText = "接受委托"; qBtn.disabled = false;
-        }
-    }
-
-    // 动态生成：行动列表
-    const actDiv = document.getElementById('action-list-container');
-    if(gameState.dailyActions) {
-        actDiv.innerHTML = gameState.dailyActions.map(act => `
-            <button class="act-btn" onclick="doAction('${act.name}', ${act.cost})">
-                <span>${act.name}</span> <span class="cost-tag">${act.cost} AP</span>
-            </button>
-        `).join('');
-    }
-
-    // 动态生成：商店列表
-    const shopDiv = document.getElementById('shop-list-container');
-    if(gameState.shopItems) {
-        shopDiv.innerHTML = gameState.shopItems.map(item => `
-            <button class="act-btn" onclick="addToCart('${item.name}', ${item.price})">
-                <span>${item.name}</span> <span class="cost-tag">${formatMoney(item.price)}</span>
-            </button>
-        `).join('');
-    }
-}
-
-function addMsg(text, type) {
-    const box = document.getElementById('chat-box');
+// 辅助工具
+function addMessage(type, text) {
+    const box = document.getElementById('chat-history');
     const div = document.createElement('div');
     div.className = `msg ${type}`;
-    div.innerText = text;
+    let name = type === 'user' ? "洛落" : (type === 'ai' ? "维克多" : "系统");
+    div.innerHTML = `<span class="msg-name">${name}</span><div class="msg-body">${text}</div>`;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
 }
 
-function switchTab(id) {
-    document.getElementById('tab-act').style.display = id==='act'?'block':'none';
-    document.getElementById('tab-shop').style.display = id==='shop'?'block':'none';
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    event.target.classList.add('active');
+function showModal(title, body, onConfirm) {
+    document.getElementById('modal-title').innerText = title;
+    document.getElementById('modal-body').innerText = body;
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    const btn = document.getElementById('modal-confirm');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => { onConfirm(); closeModal(); });
 }
 
-// 设置
-function openConfig() { 
-    updateInputFields();
-    document.getElementById('config-modal').classList.add('open'); 
-}
-function updateInputFields() {
-    document.getElementById('api-key').value = config.apiKey;
-    document.getElementById('api-url').value = config.baseUrl;
-    document.getElementById('knight-prompt').value = config.knightPrompt;
-    renderLoreList();
-}
-function renderLoreList() {
-    const container = document.getElementById('lore-list');
-    container.innerHTML = "";
-    config.worldLore.forEach((lore, index) => {
-        const div = document.createElement('div');
-        div.className = `lore-item ${!lore.active ? 'disabled' : ''}`;
-        div.innerHTML = `
-            <div class="lore-item-header">
-                <div>
-                    <input type="checkbox" ${lore.active ? 'checked' : ''} onchange="toggleLore(${index})">
-                    <span style="font-size:0.85rem; font-weight:bold; color:var(--wine-red);">条目 #${index+1}</span>
-                </div>
-                <button class="config-btn small" style="color:red; border:none;" onclick="deleteLore(${index})">删除</button>
-            </div>
-            <textarea placeholder="输入世界观..." onchange="updateLoreText(${index}, this.value)">${lore.text}</textarea>
-        `;
-        container.appendChild(div);
-    });
-}
-function addLoreEntry() { config.worldLore.push({ text: "", active: true }); renderLoreList(); }
-function deleteLore(index) { config.worldLore.splice(index, 1); renderLoreList(); }
-function toggleLore(index) { config.worldLore[index].active = !config.worldLore[index].active; renderLoreList(); }
-function updateLoreText(index, text) { config.worldLore[index].text = text; }
-function saveConfigAndClose() {
-    config.apiKey = document.getElementById('api-key').value;
-    config.baseUrl = document.getElementById('api-url').value;
-    config.knightPrompt = document.getElementById('knight-prompt').value;
-    saveData();
-    document.getElementById('config-modal').classList.remove('open');
-    alert("设置已保存");
-}
+function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }

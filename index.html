@@ -1,10 +1,10 @@
+
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>异世界还贷模拟器：银刃之约</title>
     <link rel="stylesheet" href="style.css">
-    <!-- 引入字体图标库 (可选，这里用纯CSS模拟图标) -->
 </head>
 <body>
 
@@ -56,7 +56,7 @@
         <!-- 内容区域 -->
         <main id="content-area">
             
-            <!-- 1. 角色页 (双角色) -->
+            <!-- 1. 角色页 -->
             <section id="tab-character" class="tab-content active">
                 <div class="character-split">
                     <!-- 洛落面板 -->
@@ -104,28 +104,20 @@
                 <div class="section-header">
                     <h2>猎人小屋 & 农田</h2>
                 </div>
-                
                 <div class="estate-container">
-                    <!-- 房屋区域 -->
                     <div class="estate-column">
                         <div class="column-header">
                             <span>房屋扩建</span>
                             <button id="btn-expand-house" class="small-btn">增建区域 (100金)</button>
                         </div>
-                        <div id="house-rooms-list">
-                            <!-- JS生成房间列表 -->
-                        </div>
+                        <div id="house-rooms-list"></div>
                     </div>
-
-                    <!-- 农田区域 -->
                     <div class="estate-column">
                         <div class="column-header">
                             <span>农田管理</span>
                             <button id="btn-new-field" class="small-btn">开辟新田 (50银)</button>
                         </div>
-                        <div id="farm-fields-list">
-                            <!-- JS生成农田列表 -->
-                        </div>
+                        <div id="farm-fields-list"></div>
                         <div class="estate-block" style="margin-top:10px;">
                             <h4>简易牧场</h4>
                             <p class="desc-text">3只老母鸡 (产蛋中)</p>
@@ -136,9 +128,7 @@
 
             <!-- 3. 背包页 -->
             <section id="tab-inventory" class="tab-content">
-                <div class="inventory-grid" id="inventory-grid">
-                    <!-- 动态生成 -->
-                </div>
+                <div class="inventory-grid" id="inventory-grid"></div>
             </section>
 
             <!-- 4. 行动页 -->
@@ -168,7 +158,7 @@
                 <div id="event-panel">
                     <div class="event-box">
                         <h3>当前委托</h3>
-                        <p id="event-desc">暂无紧急委托。可以在行动页进行日常活动。</p>
+                        <p id="event-desc">暂无紧急委托。</p>
                     </div>
                     <div id="punishment-panel" class="hidden warning-panel">
                         <h3>⚠️ 惩罚日执行中</h3>
@@ -181,12 +171,7 @@
 
             <!-- 6. 通讯页 -->
             <section id="tab-comm" class="tab-content">
-                <div id="chat-history" class="chat-container">
-                    <div class="msg system">
-                        <span class="msg-name">系统</span>
-                        <div class="msg-body">维克多·银刃已入住。你需要按时还款。</div>
-                    </div>
-                </div>
+                <div id="chat-history" class="chat-container"></div>
                 <div class="chat-input-area">
                     <input type="text" id="user-input" placeholder="输入对话或动作...">
                     <button id="send-btn">发送</button>
@@ -213,17 +198,31 @@
         <div class="modal-content gothic-modal wide-modal">
             <h3>⚙️ 系统设置</h3>
             <div class="input-group">
-                <label>API Address (Base URL)</label>
-                <input type="text" id="cfg-api-url" placeholder="https://api.openai.com/v1/chat/completions">
-                <small>支持 OpenAI, DeepSeek, Claude 等兼容接口</small>
+                <label>API Endpoint (完整地址)</label>
+                <input type="text" id="cfg-api-url" placeholder="https://api.deepseek.com/chat/completions">
+                <small style="color:var(--text-sub);">DeepSeek请填: https://api.deepseek.com/chat/completions</small>
+            </div>
+            <div class="input-group">
+                <label>Model Name (模型名称)</label>
+                <input type="text" id="cfg-model-name" placeholder="deepseek-chat">
+                <small style="color:var(--text-sub);">例如: deepseek-chat, gpt-4, gpt-3.5-turbo</small>
             </div>
             <div class="input-group">
                 <label>API Key</label>
                 <input type="password" id="cfg-api-key" placeholder="sk-...">
             </div>
+            
+            <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
+            
+            <div class="save-load-controls">
+                <button id="btn-export-save" class="gothic-btn">📥 导出存档 (JSON)</button>
+                <label for="file-import-save" class="gothic-btn">📤 导入存档</label>
+                <input type="file" id="file-import-save" accept=".json" style="display:none;">
+            </div>
+
             <div class="modal-actions">
-                <button id="btn-save-settings">保存并关闭</button>
-                <button id="btn-close-settings">取消</button>
+                <button id="btn-save-settings">保存配置</button>
+                <button id="btn-close-settings">关闭</button>
             </div>
         </div>
     </div>
@@ -235,7 +234,7 @@
             
             <div class="lore-section">
                 <h4>基础人物设定 (System Prompt)</h4>
-                <textarea id="cfg-persona" rows="6"></textarea>
+                <textarea id="cfg-persona" rows="8"></textarea>
                 <small>AI将始终基于此设定进行角色扮演。</small>
             </div>
 

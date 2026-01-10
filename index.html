@@ -1,4 +1,3 @@
-
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -13,10 +12,8 @@
 
     <!-- 顶部状态栏 -->
     <header id="status-bar">
-        <!-- 手机端菜单按钮 -->
         <button id="mobile-menu-btn">☰</button>
 
-        <!-- 左侧状态 -->
         <div class="status-left">
             <div class="status-group">
                 <span class="label">DATE</span>
@@ -32,8 +29,8 @@
             </div>
         </div>
 
-        <!-- 右侧设置区 (无Emoji) -->
         <div class="top-controls">
+            <button id="btn-reset" class="text-btn" style="border-color:#666; color:#999;" title="重置存档">RESET</button>
             <button id="btn-lore" class="text-btn" title="设定">LORE</button>
             <button id="btn-settings" class="text-btn" title="设置">SYSTEM</button>
         </div>
@@ -42,7 +39,7 @@
     <!-- 主体容器 -->
     <div id="main-container">
         
-        <!-- 侧边导航 (手机端为遮罩侧滑) -->
+        <!-- 侧边导航 -->
         <div id="nav-overlay" class="hidden"></div>
         <nav id="side-nav">
             <div class="nav-title">MENU</div>
@@ -63,7 +60,7 @@
                     <!-- 洛落 -->
                     <div class="char-card player-card">
                         <div class="card-header">
-                            <h3>洛落</h3><span class="role-tag">债务人/孤女</span>
+                            <h3>洛落</h3><span class="role-tag">债务人</span>
                         </div>
                         <div class="char-stats">
                             <div class="stat-row"><span>状态</span> <span id="p-status">健康</span></div>
@@ -82,14 +79,14 @@
                     <!-- 维克多 -->
                     <div class="char-card npc-card">
                         <div class="card-header">
-                            <h3>维克多</h3><span class="role-tag">债主/骑士</span>
+                            <h3>维克多</h3><span class="role-tag">债主</span>
                         </div>
                         <div class="char-stats">
                             <div class="stat-row"><span>位置</span> <span id="v-location">客厅</span></div>
                             <div class="stat-row"><span>行为</span> <span id="v-action">阅读</span></div>
                             <div class="stat-row"><span>好感</span> <span id="v-affection">30</span></div>
                             <div class="stat-row"><span>性欲</span> <span id="v-lust">5%</span></div>
-                            <div class="stat-row"><span>异常</span> <span id="v-abnormal">无</span></div>
+                            <div class="stat-row"><span>异常</span> <span id="v-abnormal">旧伤</span></div>
                         </div>
                     </div>
                 </div>
@@ -186,7 +183,7 @@
             <h3>SYSTEM SETTINGS</h3>
             
             <div class="input-group">
-                <label>API Endpoint (完整链接)</label>
+                <label>API Endpoint</label>
                 <input type="text" id="cfg-api-url" placeholder="https://api.deepseek.com/chat/completions">
                 <small style="color:#888;">DeepSeek标准地址: https://api.deepseek.com/chat/completions</small>
             </div>
@@ -196,21 +193,29 @@
                 <input type="password" id="cfg-api-key" placeholder="sk-...">
             </div>
 
-            <div class="input-group" style="flex-direction: row; gap: 10px; align-items: flex-end;">
-                <div style="flex:1;">
-                    <label>Model Name (模型)</label>
-                    <input type="text" id="cfg-model-name" placeholder="deepseek-chat">
+            <!-- 模型选择区域更新 -->
+            <div class="input-group">
+                <label>Model Name (模型)</label>
+                <div style="display: flex; gap: 8px;">
+                    <!-- 下拉框，默认显示 -->
+                    <select id="cfg-model-select" style="flex:1;">
+                        <option value="deepseek-chat">deepseek-chat (默认)</option>
+                        <option value="deepseek-coder">deepseek-coder</option>
+                        <option value="manual">手动输入...</option>
+                    </select>
+                    <!-- 手动输入框，默认隐藏 -->
+                    <input type="text" id="cfg-model-manual" style="flex:1; display:none;" placeholder="输入模型ID">
+                    
+                    <button id="btn-fetch-models" class="small-btn" style="white-space: nowrap;">🔄 拉取列表</button>
                 </div>
-                <button id="btn-fetch-models" class="small-btn" style="height: 38px;">🔄 拉取列表</button>
+                <small id="api-test-msg" style="color:var(--accent-gold); margin-top:5px;"></small>
             </div>
-            
-            <div id="api-test-msg" style="font-size:0.8em; margin-bottom:10px; color:var(--accent-gold);"></div>
             
             <hr style="border:0; border-top:1px solid #333; margin:15px 0;">
             
             <div class="save-load-controls">
-                <button id="btn-export-save" class="gothic-btn">导出存档</button>
-                <label for="file-import-save" class="gothic-btn">导入存档</label>
+                <button id="btn-export-save" class="gothic-btn">导出文件</button>
+                <label for="file-import-save" class="gothic-btn">导入文件</label>
                 <input type="file" id="file-import-save" accept=".json" style="display:none;">
             </div>
 
@@ -248,4 +253,3 @@
 
     <script src="script.js"></script>
 </body>
-

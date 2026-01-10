@@ -1,55 +1,55 @@
 // --- 核心配置 ---
 const CONFIG = {
     seasons: ["新绿季", "炎阳季", "金穗季", "霜寂季"],
-    cycleLength: 31
+    cycleLength: 31,
+    saveKey: "silver_blade_save_v2"
 };
 
 // --- 用户设置 ---
 let userConfig = {
-    // 默认设置为DeepSeek的配置
     apiUrl: "https://api.deepseek.com/chat/completions",
     apiKey: "", 
     model: "deepseek-chat", 
     persona: `【维克多·银刃】
-姓名：维克多·银刃
-年龄：32岁
-种族：人类
-属性总览：力量B/敏捷A/耐力B/智力B/魅力A
-外貌：黑发紫眸，左脸有道细疤，身材高大
-性格：冷峻/严谨/外冷内热
-职位：银月骑士团团长
-家族：银月城骑士世家，父亲是现任骑士团总帅
+身份：银月骑士团长 | 债主
+性格：冷峻、严谨、外冷内热。
+背景：在洛落家监视森林，同时监督洛落还债。
 【洛落】
 身份：欠债少女 | 玩家
-目标：打工还清3000金币。`,
+目标：打工还清100金币。`,
     worldBook: [
         { id: 1, active: true, content: "银月国：崇尚骑士精神的人类王国。" },
         { id: 2, active: true, content: "月光宝石：最近出现大量赝品，维克多正在调查此事。" }
     ]
 };
 
-// --- 游戏数据 ---
-let gameState = {
+// --- 游戏数据 (初始值) ---
+const initialGameState = {
     date: { totalDays: 1, cycleDay: 1 },
     money: 200, 
     debt: { amount: 10000, isPaid: false },
     player: { status: "健康", level: 1, exp: 0, lust: 0, organs: "未开发", ap: 100, maxAp: 100 },
-    npc: { name: "维克多", location: "客厅", action: "阅读", affection: 30, lust: 5, organs: "正常", abnormal: "无" },
+    npc: { name: "维克多", location: "客厅", action: "阅读", affection: 30, lust: 5, organs: "正常", abnormal: "旧伤" },
     home: {
         rooms: [
-            { id: 'bed', level: 1, name: '卧室', desc: '重新布置的睡眠区。屋内家具：单人床1，床头柜1，新衣柜1' },
-            { id: 'living', level: 1, name: '客厅', desc: '重新铺设地板的起居区。屋内家具：方木桌1，摇椅1，铜灯1' }
+            { id: 'bed', level: 1, name: '卧室', desc: '单人床、简易衣柜。' },
+            { id: 'living', level: 1, name: '客厅', desc: '方木桌、摇椅。' }
         ]
     },
     farm: [
         { id: 1, level: 1, type: '旱田', crop: '月光麦', stage: '生长期', water: '充足' }
     ],
     pendingActions: [],
-    chatLog: [{ type: 'system', text: '系统: 连接建立... 骑士团长维克多已上线。' }]
+    chatLog: [{ type: 'system', text: '连接建立...骑士团长维克多已上线。' }]
 };
+
+let gameState = JSON.parse(JSON.stringify(initialGameState));
 
 // --- 初始化 ---
 document.addEventListener('DOMContentLoaded', () => {
+    autoLoad(); // 启动时自动读取本地存档
+    
+    // UI 初始化
     rebuildChatDOM();
     updateUI();
     renderHome();
@@ -67,44 +67,74 @@ document.addEventListener('DOMContentLoaded', () => {
     menuBtn.addEventListener('click', toggleMenu);
     navOverlay.addEventListener('click', toggleMenu);
 
-    // 导航点击后自动收起菜单 (手机端)
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // 切换 Tab
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             e.currentTarget.classList.add('active');
             document.getElementById(`tab-${e.currentTarget.dataset.tab}`).classList.add('active');
-            
-            // 收起菜单
             if(window.innerWidth <= 768) toggleMenu();
         });
     });
 
-    // 顶部设置
+    // 按钮事件绑定
     document.getElementById('btn-settings').addEventListener('click', openSettings);
     document.getElementById('btn-lore').addEventListener('click', openLore);
-    
-    // 模态框操作
     document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
     document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('modal-settings-overlay').classList.add('hidden'));
     document.getElementById('btn-export-save').addEventListener('click', exportSave);
     document.getElementById('file-import-save').addEventListener('change', importSave);
-    document.getElementById('btn-fetch-models').addEventListener('click', fetchModels); // 新增
-
-    // 设定操作
+    document.getElementById('btn-fetch-models').addEventListener('click', fetchModels);
     document.getElementById('btn-save-lore').addEventListener('click', saveLore);
     document.getElementById('btn-close-lore').addEventListener('click', () => document.getElementById('modal-lore-overlay').classList.add('hidden'));
     document.getElementById('btn-add-lore').addEventListener('click', addLoreEntry);
-
-    // 游戏操作
     document.getElementById('btn-new-field').addEventListener('click', expandField);
     document.getElementById('btn-expand-house').addEventListener('click', expandHouse);
     document.getElementById('btn-end-day').addEventListener('click', endDay);
     document.getElementById('send-btn').addEventListener('click', handleUserChat);
     document.getElementById('btn-repay').addEventListener('click', repayDebt);
     document.getElementById('modal-cancel').addEventListener('click', closeModal);
+    document.getElementById('btn-reset').addEventListener('click', resetGame);
+    
+    // 模型选择框联动
+    const modelSelect = document.getElementById('cfg-model-select');
+    modelSelect.addEventListener('change', function() {
+        const manualInput = document.getElementById('cfg-model-manual');
+        if (this.value === 'manual') {
+            manualInput.style.display = 'block';
+        } else {
+            manualInput.style.display = 'none';
+        }
+    });
 });
+
+// --- 本地存储逻辑 ---
+
+function autoSave() {
+    const data = { gameState, userConfig };
+    localStorage.setItem(CONFIG.saveKey, JSON.stringify(data));
+}
+
+function autoLoad() {
+    const raw = localStorage.getItem(CONFIG.saveKey);
+    if (raw) {
+        try {
+            const data = JSON.parse(raw);
+            if(data.gameState) gameState = data.gameState;
+            if(data.userConfig) userConfig = data.userConfig;
+            console.log("本地存档已加载");
+        } catch(e) {
+            console.error("存档损坏", e);
+        }
+    }
+}
+
+function resetGame() {
+    if(confirm("确定要重置所有进度吗？这将无法撤销。")) {
+        localStorage.removeItem(CONFIG.saveKey);
+        location.reload();
+    }
+}
 
 // --- UI 渲染 ---
 function updateUI() {
@@ -113,7 +143,7 @@ function updateUI() {
     document.getElementById('date-display').innerText = `${CONFIG.seasons[sIndex]} ${gameState.date.cycleDay}`;
     
     const m = gameState.money;
-    document.getElementById('money-display').innerText = `${Math.floor(m/100)}金 ${m%10}铜`; // 简化显示
+    document.getElementById('money-display').innerText = `${Math.floor(m/100)}金 ${m%10}铜`; 
     document.getElementById('ap-display').innerText = `${gameState.player.ap}`;
 
     // 角色状态
@@ -131,6 +161,9 @@ function updateUI() {
     } else {
         btnRepay.style.display = 'none';
     }
+    
+    // 每次刷新UI时自动保存
+    autoSave();
 }
 
 function renderHome() {
@@ -239,51 +272,107 @@ function repayDebt() {
 // --- API & 设置 ---
 function openSettings() {
     document.getElementById('cfg-api-url').value = userConfig.apiUrl;
-    document.getElementById('cfg-model-name').value = userConfig.model;
     document.getElementById('cfg-api-key').value = userConfig.apiKey;
+    
+    // 初始化模型选择器
+    const select = document.getElementById('cfg-model-select');
+    const manualInput = document.getElementById('cfg-model-manual');
+    
+    // 检查当前模型是否在下拉列表里
+    const exists = [...select.options].some(o => o.value === userConfig.model);
+    
+    if (exists) {
+        select.value = userConfig.model;
+        manualInput.style.display = 'none';
+    } else {
+        select.value = 'manual';
+        manualInput.style.display = 'block';
+        manualInput.value = userConfig.model;
+    }
+    
     document.getElementById('modal-settings-overlay').classList.remove('hidden');
 }
 
 function saveSettings() {
     userConfig.apiUrl = document.getElementById('cfg-api-url').value;
-    userConfig.model = document.getElementById('cfg-model-name').value;
     userConfig.apiKey = document.getElementById('cfg-api-key').value;
+    
+    const select = document.getElementById('cfg-model-select');
+    if (select.value === 'manual') {
+        userConfig.model = document.getElementById('cfg-model-manual').value;
+    } else {
+        userConfig.model = select.value;
+    }
+    
     document.getElementById('modal-settings-overlay').classList.add('hidden');
+    autoSave();
     addMessage('system', '设置已保存');
 }
 
-// 拉取模型列表（测试连接）
+// 拉取模型列表（核心更新）
 async function fetchModels() {
     const url = document.getElementById('cfg-api-url').value;
     const key = document.getElementById('cfg-api-key').value;
     const msgBox = document.getElementById('api-test-msg');
+    const select = document.getElementById('cfg-model-select');
 
     if(!key) { msgBox.innerText = "请先填写API Key"; return; }
-
-    // 尝试推断 Base URL (去除 /chat/completions)
-    let baseUrl = url.replace('/chat/completions', '');
-    if(baseUrl.endsWith('/v1')) baseUrl = baseUrl; // keep v1 if present
-    else if(!baseUrl.endsWith('/v1')) baseUrl += '/v1'; // try adding v1 if missing
     
-    // DeepSeek 具体路径可能是 https://api.deepseek.com/models
-    // 通用 OpenAI 路径是 https://api.xxx.com/v1/models
-    const tryUrl = "https://api.deepseek.com/models"; // 强制尝试DeepSeek的标准models路径
+    msgBox.innerText = "正在拉取...";
 
-    msgBox.innerText = "正在连接 DeepSeek...";
-    
+    // 智能推断 models 路径
+    let modelsUrl = url;
+    if (url.includes('/chat/completions')) {
+        modelsUrl = url.replace('/chat/completions', '/models');
+        // 应对一些不规范的API转发 (比如 deepseek 有时是 /models 而不是 /v1/models)
+        if(modelsUrl.includes('deepseek.com') && !modelsUrl.includes('/v1/')) {
+             // deepseek official endpoint tweak if needed, mostly standard now
+        }
+    } else {
+        // 尝试默认
+        modelsUrl = "https://api.deepseek.com/models";
+    }
+
     try {
-        const res = await fetch(tryUrl, {
+        const res = await fetch(modelsUrl, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${key}` }
         });
 
-        if(!res.ok) throw new Error(res.status + " " + res.statusText);
+        if(!res.ok) throw new Error("HTTP " + res.status);
         
         const data = await res.json();
-        console.log(data);
-        msgBox.innerText = "连接成功! 发现模型: " + (data.data ? data.data.map(m=>m.id).join(', ') : "未知结构");
+        const models = data.data; // Standard OpenAI format: { data: [{id: "..."}] }
+        
+        if (Array.isArray(models)) {
+            // 清空旧选项，保留前几个或者重新生成
+            select.innerHTML = '';
+            
+            // 添加获取到的模型
+            models.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.text = m.id;
+                select.appendChild(opt);
+            });
+            
+            // 添加手动选项
+            const manualOpt = document.createElement('option');
+            manualOpt.value = 'manual';
+            manualOpt.text = '手动输入...';
+            select.appendChild(manualOpt);
+            
+            // 自动选中第一个
+            select.value = models[0].id;
+            document.getElementById('cfg-model-manual').style.display = 'none';
+            
+            msgBox.innerText = `成功获取 ${models.length} 个模型`;
+        } else {
+            throw new Error("返回格式不符");
+        }
     } catch(e) {
-        msgBox.innerText = "连接失败: " + e.message + "\n(若是本地运行，可能是跨域CORS问题)";
+        console.error(e);
+        msgBox.innerText = "拉取失败: " + e.message + " (请尝试手动输入)";
     }
 }
 
@@ -291,7 +380,7 @@ function exportSave() {
     const blob = new Blob([JSON.stringify({gameState, userConfig})], {type: "application/json"});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = "save.json"; a.click();
+    a.href = url; a.download = `silver_blade_save_${Date.now()}.json`; a.click();
 }
 
 function importSave(e) {
@@ -304,6 +393,7 @@ function importSave(e) {
             gameState = data.gameState;
             userConfig = data.userConfig;
             updateUI(); renderHome(); rebuildChatDOM();
+            autoSave();
             alert("读取成功");
             document.getElementById('modal-settings-overlay').classList.add('hidden');
         } catch(err) { alert("坏档"); }
@@ -330,13 +420,14 @@ function renderLoreList() {
             </div>`;
     });
 }
-window.toggleLore = (i) => userConfig.worldBook[i].active = !userConfig.worldBook[i].active;
-window.updateLore = (i, v) => userConfig.worldBook[i].content = v;
-window.delLore = (i) => { userConfig.worldBook.splice(i,1); renderLoreList(); };
+window.toggleLore = (i) => { userConfig.worldBook[i].active = !userConfig.worldBook[i].active; autoSave(); };
+window.updateLore = (i, v) => { userConfig.worldBook[i].content = v; autoSave(); };
+window.delLore = (i) => { userConfig.worldBook.splice(i,1); renderLoreList(); autoSave(); };
 function addLoreEntry() { userConfig.worldBook.push({active:true, content:""}); renderLoreList(); }
 function saveLore() {
     userConfig.persona = document.getElementById('cfg-persona').value;
     document.getElementById('modal-lore-overlay').classList.add('hidden');
+    autoSave();
 }
 
 // --- AI 通讯 ---
@@ -345,7 +436,6 @@ async function endDay() {
     gameState.date.totalDays++;
     gameState.player.ap = 100;
     
-    // 简易收益
     let income = 0;
     if(gameState.pendingActions.join("").includes("酒馆")) income = 50;
     gameState.money += income;
@@ -354,6 +444,7 @@ async function endDay() {
     gameState.pendingActions = [];
 
     addMessage('system', `第${gameState.date.cycleDay-1}天结束。收益:${income}`);
+    updateUI(); // 先保存一下状态
     
     const prompt = `
 ${userConfig.persona}
@@ -362,7 +453,6 @@ ${userConfig.persona}
 请以维克多视角进行日结评价。
     `;
     await callAI(prompt, "日结");
-    updateUI();
 }
 
 async function handleUserChat() {
@@ -404,6 +494,7 @@ async function callAI(system, user) {
         const data = await res.json();
         const reply = data.choices ? data.choices[0].message.content : "API返回格式异常";
         addMessage('ai', reply);
+        autoSave(); // 收到消息后保存聊天记录
     } catch(e) {
         addMessage('error', "API错误: " + e.message);
     }
@@ -412,6 +503,7 @@ async function callAI(system, user) {
 function addMessage(type, text) {
     gameState.chatLog.push({type, text});
     rebuildChatDOM();
+    // 这里不需要显式调用autoSave，因为通常跟随UpdateUI或AI回调
 }
 
 function showModal(title, body, cb) {
